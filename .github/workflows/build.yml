@@ -8,20 +8,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/kivy/buildozer:latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          buildozer_version: master
-          command: buildozer -v android debug
+      - name: Fix permissions for container workspace
+        run: |
+          git config --global --add safe.directory /__w/folyan-app/folyan-app
+
+      - name: Build APK with Buildozer
+        run: |
+          buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FolyanApp
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
