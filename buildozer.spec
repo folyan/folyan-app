@@ -20,3 +20,6 @@ android.accept_sdk_license = True
 [buildozer]
 log_level = 0
 warn_on_root = 0
+android.api = 34
+android.minapi = 21
+android.ndk = 25b

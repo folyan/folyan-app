@@ -7,42 +7,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - name: Build with Buildozer Action
+        uses: ArtemSBulgakov/buildozer-action@v1
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          buildozer_version: master
+          workdir: .
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
-            build-essential ccache libltdl-dev
-
-      - name: Install Buildozer and Cython
-        run: |
-          pip install --upgrade pip
-          pip install cython virtualenv
-          # Ставим мастер-ветку buildozer, где исправлены ссылки на Android SDK:
-          pip install --upgrade https://github.com/kivy/buildozer/archive/master.zip
-
-      - name: Build APK with Buildozer
-        run: |
-          yes | buildozer -v android debug
-
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FolyanApp
