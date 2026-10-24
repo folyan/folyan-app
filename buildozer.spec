@@ -16,6 +16,7 @@ fullscreen = 0
 android.api = 34
 android.minapi = 24
 android.ndk = 25b
+icon.filename = %(source.dir)s/icon.png
 
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, MANAGE_EXTERNAL_STORAGE
 android.archs = arm64-v8a
