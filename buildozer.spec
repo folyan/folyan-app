@@ -9,7 +9,7 @@ source.exclude_patterns = core.pyx
 
 version = 0.2.1
 
-requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, android, cython
+requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, cython==3.2.6
 
 orientation = portrait
 fullscreen = 0
