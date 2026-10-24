@@ -1,0 +1,18 @@
+from .tab import (  # NOQA F401
+    IOSTabBarButton,
+    IOSTabBarHorizontal,
+    IOSTabBarIndicator,
+    IOSTabBarItem,
+    IOSTabBarItemIcon,
+    IOSTabBarItemText,
+    IOSTabBarLayout,
+    IOSTabBarVertical,
+    MDTabsBadge,
+    MDTabsCarousel,
+    MDTabsItem,
+    MDTabsItemIcon,
+    MDTabsItemSecondary,
+    MDTabsItemText,
+    MDTabsPrimary,
+    MDTabsSecondary,
+)

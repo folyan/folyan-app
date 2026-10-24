@@ -1,0 +1,484 @@
+/*
+ * ============================================================================
+ * Liquid Glass UI Fragment Shader (iOS-Style Refraction & Blur)
+ * ============================================================================
+ *
+ * Description:
+ *   Renders an interactive glassmorphic UI element with dynamic physical
+ *   effects including:
+ *     1. Signed Distance Field (SDF) rounded rectangle clipping with AA.
+ *     2. Golden angle multi-sample Gaussian/disk background blur.
+ *     3. Dual-mode refraction:
+ *        - Central magnification (lens power / bulge).
+ *        - Edge/bevel normal displacement based on SDF spatial gradient.
+ *     4. Procedural lighting: directional rim highlights and bevel shadows.
+ *     5. Touch response: dynamic spot highlight and tinting on press.
+ *
+ * Uniforms:
+ *   - sampler2D texture0     : Framebuffer object (FBO) background texture.
+ *   - vec2 iResolution       : Screen resolution in pixels (Window.size).
+ *   - vec2 u_pos             : Widget bottom-left position in screen coordinates.
+ *   - vec2 u_size            : Widget dimensions (width, height).
+ *   - vec4 u_radius          : Corner radii (top-left, top-right, bottom-right, bottom-left).
+ *   - vec4 u_glass_color     : Base tint color and opacity (RGBA).
+ *   - float u_blur_amount    : Background blur kernel radius.
+ *   - float u_lens_power     : Central magnification factor (0.0 = flat).
+ *   - float u_bevel_power    : Edge refraction intensity along the SDF gradient.
+ *   - float u_pressed        : Touch press factor (0.0 to 1.0) for interaction.
+ *   - vec2 u_touch_pos       : Current touch coordinates on screen.
+ *   - vec2 u_stretch_factor  : Used for stretch/squash animations.
+ *   - float u_border_opacity : Opacity of the border outline (0.0 to 1.0).
+ * ============================================================================
+ */
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+varying vec4 frag_color;
+uniform vec4 u_radius;
+uniform vec4 u_glass_color;
+
+uniform sampler2D texture0;
+
+uniform vec2 iResolution;
+uniform vec2 u_pos;
+uniform vec2 u_size;
+varying vec2 tex_coord0;
+uniform vec2 u_touch_pos;
+uniform vec2 u_stretch_factor;
+
+uniform float u_pressed;
+uniform float u_blur_amount;
+
+// Dynamic uniforms for lens control
+uniform float u_lens_power;
+uniform float u_bevel_power;
+uniform float u_border_opacity;
+
+// ------------------------------------------------------------
+// Signed Distance Field (SDF) for a rounded rectangle.
+// ------------------------------------------------------------
+
+float sdRoundedRect(
+    vec2 pos,
+    vec2 halfSize,
+    vec4 cornerRadius
+) {
+    float maxRadius =
+        min(
+            halfSize.x,
+            halfSize.y
+        );
+
+    cornerRadius =
+        min(
+            cornerRadius,
+            vec4(maxRadius)
+        );
+
+    float r =
+        (pos.x > 0.0)
+            ? ((pos.y > 0.0)
+                ? cornerRadius.y
+                : cornerRadius.z)
+            : ((pos.y > 0.0)
+                ? cornerRadius.x
+                : cornerRadius.w);
+
+    vec2 q =
+        abs(pos)
+        - halfSize
+        + r;
+
+    return
+        min(
+            max(q.x, q.y),
+            0.0
+        )
+        + length(max(q, 0.0))
+        - r;
+}
+
+// ------------------------------------------------------------
+// SDF normal gradient via central differences.
+// ------------------------------------------------------------
+
+vec2 getSDFGradient(
+    vec2 pos,
+    vec2 halfSize,
+    vec4 radius
+) {
+    vec2 eps =
+        vec2(0.5, 0.0);
+
+    float dx =
+        sdRoundedRect(
+            pos + eps.xy,
+            halfSize,
+            radius
+        )
+        -
+        sdRoundedRect(
+            pos - eps.xy,
+            halfSize,
+            radius
+        );
+
+    float dy =
+        sdRoundedRect(
+            pos + eps.yx,
+            halfSize,
+            radius
+        )
+        -
+        sdRoundedRect(
+            pos - eps.yx,
+            halfSize,
+            radius
+        );
+
+    return
+        normalize(
+            vec2(dx, dy)
+            + vec2(0.0001)
+        );
+}
+
+// ------------------------------------------------------------
+// Multi-sample golden angle disk blur.
+// ------------------------------------------------------------
+
+vec3 getBlurredColor(
+    vec2 uv,
+    float blurAmount
+) {
+    vec2 radius =
+        vec2(blurAmount)
+        / max(iResolution, vec2(1.0));
+
+    const float SAMPLES = 16.0;
+    const float GOLDEN_ANGLE = 2.3999632;
+
+    vec3 col = vec3(0.0);
+
+    for (float i = 0.0; i < SAMPLES; i += 1.0) {
+        float r =
+            sqrt((i + 0.5) / SAMPLES);
+
+        float theta =
+            mod(i * GOLDEN_ANGLE, 6.28318530718);
+
+        vec2 offset =
+            vec2(
+                cos(theta),
+                sin(theta)
+            )
+            * r
+            * radius;
+
+        col +=
+            texture2D(
+                texture0,
+                clamp(uv + offset, 0.0, 1.0)
+            ).rgb;
+    }
+
+    return col / SAMPLES;
+}
+
+// ------------------------------------------------------------
+// Main execution loop.
+// ------------------------------------------------------------
+
+void main() {
+    vec2 halfSize =
+        u_size * 0.5;
+
+    // Apply stretch factor to halfSize for non-uniform scaling
+    // (safe from zero division)
+    vec2 safeStretch = max(u_stretch_factor, vec2(0.0001));
+    vec2 stretchedHalfSize =
+        halfSize * safeStretch;
+
+    // Correct coordinates, accounting for the stretch factor
+    vec2 centeredUV =
+        (tex_coord0 - 0.5)
+        * u_size
+        * safeStretch;
+
+    // --------------------------------------------------------
+    // Signed Distance Field & Anti-Aliasing (AA).
+    // --------------------------------------------------------
+
+    float sdf =
+        sdRoundedRect(
+            centeredUV,
+            stretchedHalfSize,
+            u_radius
+        );
+
+    float aa = 1.0;
+
+    vec2 grad =
+        getSDFGradient(
+            centeredUV,
+            stretchedHalfSize,
+            u_radius
+        );
+
+    // --------------------------------------------------------
+    // Spherical Lens Distortion & Edge Refraction.
+    // --------------------------------------------------------
+
+    vec2 screenUV =
+        (
+            u_pos
+            + halfSize
+            + centeredUV
+        )
+        / iResolution;
+
+    // For normButtonUV, we need to unstretch the UV to get proper normalized
+    // coordinates
+    vec2 normButtonUV =
+        vec2(
+            centeredUV.x / stretchedHalfSize.x,
+            centeredUV.y / stretchedHalfSize.y
+        );
+
+    float dist =
+        length(normButtonUV);
+
+    // 1. Central magnification effect (bulge)
+    vec2 lensOffset =
+        normButtonUV
+        * (
+            1.0
+            - smoothstep(0.0, 1.5, dist)
+        )
+        * u_lens_power;
+
+    // 2. Bevel edge refraction
+    // For heightRef, we need to use the unstretched halfSize to maintain
+    // consistent bevel width
+    float heightRef =
+        min(
+            halfSize.x,
+            halfSize.y
+        );
+
+    float bevelWidth =
+        min(
+            24.0,
+            heightRef * 0.4
+        );
+
+    float bevelMask =
+        smoothstep(
+            -bevelWidth,
+            0.0,
+            sdf
+        );
+
+    vec2 bevelOffset =
+        grad
+        * bevelMask
+        * u_bevel_power;
+
+    // Apply stretch factor to the final offset to maintain proper stretching
+    // effect
+    vec2 finalUVOffset =
+        (lensOffset - bevelOffset)
+        * (u_size / iResolution)
+        * safeStretch;
+
+    // Counteract the stretch when sampling to properly display the stretched
+    // background (safe division)
+    vec2 sampleUV =
+        screenUV - (finalUVOffset / safeStretch);
+
+    // --------------------------------------------------------
+    // Background Sampling & Tone Adjustment.
+    // --------------------------------------------------------
+
+    vec3 blurredTex =
+        getBlurredColor(
+            sampleUV,
+            u_blur_amount
+        );
+
+    blurredTex =
+        pow(
+            blurredTex,
+            vec3(0.88)
+        ) * 1.15;
+
+    vec3 finalColor =
+        mix(
+            blurredTex,
+            u_glass_color.rgb,
+            u_glass_color.a
+            * 0.4
+        );
+
+    // --------------------------------------------------------
+    // Bevel Shadow & Specular Rim Highlights.
+    // --------------------------------------------------------
+
+    float innerBevel =
+        smoothstep(
+            -heightRef * 0.35,
+            0.0,
+            sdf
+        ) * 0.2;
+
+    finalColor *= (
+        1.0
+        - innerBevel
+    );
+
+    float rimMask =
+        smoothstep(
+            -3.0,
+            -0.5,
+            sdf
+        )
+        * (
+            1.0
+            - smoothstep(
+                -0.5,
+                0.5,
+                sdf
+            )
+        );
+
+    vec2 lightDir =
+        normalize(
+            vec2(-0.5, 0.85)
+        );
+
+    float NdotL =
+        dot(
+            grad,
+            lightDir
+        );
+
+    float topLeftHighlight =
+        pow(
+            max(0.0, NdotL),
+            2.2
+        )
+        * rimMask
+        * 1.1;
+
+    float bottomRightHighlight =
+        pow(
+            max(0.0, -NdotL),
+            3.0
+        )
+        * rimMask
+        * 0.75;
+
+    float edgeStroke =
+        smoothstep(
+            -1.2,
+            0.0,
+            sdf
+        ) * 0.25;
+
+    finalColor +=
+        vec3(1.0)
+        * (
+            topLeftHighlight
+            + bottomRightHighlight
+            + edgeStroke
+        )
+        * u_border_opacity;
+
+    // --------------------------------------------------------
+    // Touch Interaction Highlights.
+    // --------------------------------------------------------
+
+    vec3 pressedGlassColor =
+        mix(
+            finalColor,
+            vec3(0.25, 0.55, 1.0),
+            0.25
+        );
+
+    finalColor =
+        mix(
+            finalColor,
+            pressedGlassColor,
+            u_pressed
+        );
+
+    // Cross-platform calculation of soft highlights, accounting for stretching
+    vec2 touchUV =
+        (
+            u_touch_pos
+            - u_pos
+        )
+        / max(
+            u_size,
+            vec2(0.001)
+        );
+
+    vec2 aspectCorrection =
+        u_size
+        / max(
+            u_size.y,
+            0.001
+        );
+
+    vec2 stretchedTexCoord =
+        (
+            tex_coord0
+            - 0.5
+        )
+        * safeStretch + 0.5;
+
+    float spotDist =
+        length(
+            (stretchedTexCoord - touchUV)
+            * aspectCorrection
+        );
+
+    float spot =
+        1.0
+        - smoothstep(
+            0.0,
+            0.75,
+            spotDist
+        );
+    spot = clamp(spot, 0.0, 1.0);
+
+    finalColor =
+        mix(
+            finalColor,
+            vec3(1.0),
+            spot
+            * u_pressed
+            * 0.35
+        );
+
+    // --------------------------------------------------------
+    // Alpha Compositing.
+    // --------------------------------------------------------
+
+    float edgeAlpha =
+        1.0
+        - smoothstep(
+            -aa,
+            aa,
+            sdf
+        );
+    edgeAlpha = clamp(edgeAlpha, 0.0, 1.0);
+
+    gl_FragColor =
+        vec4(
+            finalColor,
+            edgeAlpha
+        );
+}

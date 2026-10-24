@@ -1,0 +1,234 @@
+# ----------------------------------- MD ----------------------------------
+
+<MDDialogSpacer>
+    height: dp(8)
+    size_hint_y: None
+
+
+<MDDialog>
+    radius: root.radius
+    pos_hint: {"center_x": .5, "center_y": .5}
+    size_hint: None, None
+    height: container.height
+    theme_shadow_color: "Custom"
+    shadow_color: self.theme_cls.transparentColor
+    focus_behavior: False
+
+    RelativeLayout:
+        size_hint_y: None
+        height: container.height
+
+        BoxLayout:
+            id: container
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height + button_container.height + dp(24)
+            padding: dp(24), dp(0), dp(24), dp(0)
+            y: button_container.height + dp(24)
+
+            MDDialogSpacer:
+                height: dp(24) + dp(16)
+
+            AnchorLayout:
+                id: icon_container
+                size_hint_y: None
+                anchor_x: "center"
+                height: self.children[0].height if self.children else 0
+
+            MDDialogSpacer:
+                height: dp(16) if root.ids.icon_container.children else 0
+
+            BoxLayout:
+                id: headline_container
+                size_hint_y: None
+                height: self.minimum_height
+
+            MDDialogSpacer:
+                height: dp(16) if root.ids.headline_container.children else 0
+
+            BoxLayout:
+                id: supporting_text_container
+                size_hint_y: None
+                height: self.minimum_height
+
+            MDDialogSpacer:
+                height: dp(16) if root.ids.supporting_text_container.children else 0
+
+            BoxLayout:
+                id: content_container
+                size_hint_y: None
+                height: self.minimum_height
+                
+            MDDialogSpacer:
+                height: dp(16)
+
+        BoxLayout:
+            id: button_container
+            size_hint_y: None
+            height: self.minimum_height
+            y: content_container.y
+
+
+<MDDialogIcon>
+    size_hint: None, None
+    size: "24dp", "24dp"
+    theme_font_size: "Custom"
+    font_size: "24sp"
+    icon_color:
+        self.theme_cls.secondaryColor \
+        if self.theme_icon_color == "Primary" else \
+        ( \
+        self.icon_color \
+        if self.icon_color else self.theme_cls.transparentColor \
+        )
+
+
+<MDDialogHeadlineText>
+    adaptive_height: True
+    halign: "center"
+    font_style: "Headline"
+    role: "small"
+    markup: True
+    color:
+        self.theme_cls.onSurfaceColor \
+        if self.theme_text_color == "Primary" else ( \
+        self.text_color \
+        if self.text_color != self.theme_cls.transparentColor else \
+        self.theme_cls.onSurfaceColor \
+        )
+
+
+<MDDialogSupportingText>
+    adaptive_height: True
+    halign: "center"
+    font_style: "Body"
+    role: "medium"
+    markup: True
+    text_color:
+        self.theme_cls.onSurfaceVariantColor \
+        if self.theme_text_color == "Primary" else ( \
+        self.text_color \
+        if self.text_color != self.theme_cls.transparentColor else \
+        self.theme_cls.onSurfaceVariantColor \
+        )
+
+
+<MDDialogContentContainer>
+    size_hint_y: None
+    height: self.minimum_height
+
+
+<MDDialogButtonContainer>
+    size_hint_y: None
+    height: self.minimum_height
+    padding: "24dp", 0, "24dp", 0
+
+
+<MDDialogScrim>
+    canvas:
+        Color:
+            rgba: self.color[:-1] + [self.alpha]
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+# ---------------------------------- IOS ----------------------------------
+
+<IOSDialogScrim>
+    size_hint: 1, 1
+    pos_hint: {'x': 0, 'y': 0}
+
+    canvas:
+        Color:
+            rgba: 0, 0, 0, 0.4 * root.alpha
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+
+<IOSDialogButtonText>
+    pos_hint: {"center_x": .5, "center_y": .5}
+
+
+<IOSDialogButton>
+    style: "text"
+    theme_width: "Custom"
+    size_hint_x: 1
+
+
+<IOSDialogTitle>
+    halign: "center"
+    valign: "middle"
+    font_style: "Title"
+    role: "medium"
+    bold: True
+    adaptive_height: True
+
+
+<IOSDialogMessage>
+    adaptive_height: True
+    halign: "center"
+    valign: "middle"
+
+
+<IOSDialogContentContainer>
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+
+
+<IOSDialogButtonContainer>
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(12), 0, dp(12), dp(12)
+
+
+<IOSDialog>
+    size_hint: None, None
+    width: dp(270)
+    height: main_box.height
+
+    BoxLayout:
+        id: main_box
+        orientation: "vertical"
+        size_hint: None, None
+        width: root.width
+        height: self.minimum_height
+        pos: root.pos
+
+        BoxLayout:
+            id: content_box
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            padding: dp(16), dp(18), dp(16), dp(16)
+            spacing: dp(6)
+
+            BoxLayout:
+                id: title_container
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+
+            BoxLayout:
+                id: message_container
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+
+            BoxLayout:
+                id: custom_content_container
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+
+        BoxLayout:
+            id: button_wrapper
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+
+            BoxLayout:
+                id: button_container
+                size_hint_y: None
+                height: self.minimum_height
