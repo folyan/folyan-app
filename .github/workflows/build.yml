@@ -9,6 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
+    # ЭТА СТРОКА УКАЗЫВАЕТ GITHUB БРАТЬ СЕКРЕТЫ ИЗ ТВОЕГО ОКРУЖЕНИЯ "env"
     environment: env
 
     steps:
@@ -96,8 +97,8 @@ jobs:
             --mode=universal \
             --ks=${{ github.workspace }}/release-key.keystore \
             --ks-key-alias="$KS_ALIAS" \
-            --ks-pass=env:KS_PASS \
-            --key-pass=env:KEY_PASS
+            --ks-pass="pass:$KS_PASS" \
+            --key-pass="pass:$KEY_PASS"
           unzip -o bin/app.apks universal.apk -d bin
           mv bin/universal.apk bin/FolyanApp-release.apk
 
