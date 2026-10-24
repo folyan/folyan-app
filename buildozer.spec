@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,kv,atlas,ttf
 
 version = 0.1
 
-requirements = python3,kivy,kivymd,pillow,materialyoucolor,asynckivy
+requirements = python3,kivy,kivymd,pillow,materialyoucolor,asynckivy,certifi
 
 orientation = portrait
 fullscreen = 0

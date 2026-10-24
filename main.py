@@ -1,25 +1,30 @@
+import sys
+import traceback
 import os
-import threading
-import contextlib
 
-from kivy.lang import Builder
-from kivy.uix.screenmanager import ScreenManager
-from kivy.core.window import Window
-from kivy.clock import Clock, mainthread
-from kivy.core.text import Label as CoreLabel
-from kivy.core.clipboard import Clipboard
-from kivy.uix.label import Label
-from kivy.metrics import dp, sp
-from kivymd.app import MDApp
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDButton, MDButtonText
+# Пытаемся поймать любую ошибку импорта или инициализации
+try:
+    import threading
+    import contextlib
 
-from RockScissorsPaper import check_win
+    from kivy.lang import Builder
+    from kivy.uix.screenmanager import ScreenManager
+    from kivy.core.window import Window
+    from kivy.clock import Clock, mainthread
+    from kivy.core.text import Label as CoreLabel
+    from kivy.core.clipboard import Clipboard
+    from kivy.uix.label import Label
+    from kivy.metrics import dp, sp
+    from kivymd.app import MDApp
+    from kivymd.uix.screen import MDScreen
+    from kivymd.uix.boxlayout import MDBoxLayout
+    from kivymd.uix.button import MDButton, MDButtonText
 
-SCRIPTS_DIR = "/storage/emulated/0/FolyanApp/UserScripts/"
+    from RockScissorsPaper import check_win
 
-KV = """
+    SCRIPTS_DIR = "/storage/emulated/0/FolyanApp/UserScripts/"
+
+    KV = """
 #:set BG (0.055, 0.086, 0.129, 1)
 
 <MenuButton@MDButton>:
@@ -183,257 +188,260 @@ KV = """
                 spacing: "10dp"
 """
 
+    class OutputPipe:
+        def __init__(self, callback):
+            self.callback = callback
 
-class OutputPipe:
-    def __init__(self, callback):
-        self.callback = callback
+        def write(self, text):
+            if text.strip():
+                self.callback(text.strip(), "left")
 
-    def write(self, text):
-        if text.strip():
-            self.callback(text.strip(), "left")
+        def flush(self):
+            pass
 
-    def flush(self):
+    class BaseScreen(MDScreen):
+        def go_to(self, name):
+            self.manager.current = name
+
+    class MenuScreen(BaseScreen):
         pass
 
+    class RockPaperScissorsScreen(BaseScreen):
+        def on_image_click(self, choice):
+            result = check_win(choice)
+            results = {"tie": "Ничья!", "win": "Ты выиграл!", "lose": "Ты проиграл!"}
+            self.ids.label.text = results.get(result, results["lose"])
 
-class BaseScreen(MDScreen):
-    def go_to(self, name):
-        self.manager.current = name
-
-
-class MenuScreen(BaseScreen):
-    pass
-
-
-class RockPaperScissorsScreen(BaseScreen):
-    def on_image_click(self, choice):
-        result = check_win(choice)
-        results = {"tie": "Ничья!", "win": "Ты выиграл!", "lose": "Ты проиграл!"}
-        self.ids.label.text = results.get(result, results["lose"])
-
-
-class Bubble(MDBoxLayout):
-    def __init__(self, text, **kwargs):
-        super().__init__(**kwargs)
-        self.text_value = text
-        self.hold_event = None
-        self.held = False
-
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            touch.grab(self)
+    class Bubble(MDBoxLayout):
+        def __init__(self, text, **kwargs):
+            super().__init__(**kwargs)
+            self.text_value = text
+            self.hold_event = None
             self.held = False
-            self.hold_event = Clock.schedule_once(self.on_hold, 0.5)
-            return True
-        return super().on_touch_down(touch)
 
-    def on_touch_up(self, touch):
-        if touch.grab_current is self:
-            touch.ungrab(self)
-            if self.hold_event:
-                self.hold_event.cancel()
-                self.hold_event = None
-            return True
-        return super().on_touch_up(touch)
+        def on_touch_down(self, touch):
+            if self.collide_point(*touch.pos):
+                touch.grab(self)
+                self.held = False
+                self.hold_event = Clock.schedule_once(self.on_hold, 0.5)
+                return True
+            return super().on_touch_down(touch)
 
-    def on_hold(self, dt):
-        self.held = True
-        self.hold_event = None
-        Clipboard.copy(self.text_value)
+        def on_touch_up(self, touch):
+            if touch.grab_current is self:
+                touch.ungrab(self)
+                if self.hold_event:
+                    self.hold_event.cancel()
+                    self.hold_event = None
+                return True
+            return super().on_touch_up(touch)
 
+        def on_hold(self, dt):
+            self.held = True
+            self.hold_event = None
+            Clipboard.copy(self.text_value)
 
-class InterpreterScreen(BaseScreen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.current_code = ""
-        self.current_name = ""
-        self.running = False
-        self.answer = None
-        self.pending = None
-        self.event = threading.Event()
-
-    def on_touch_down(self, touch):
-        card = self.ids.file_card
-        if card.opacity and card.collide_point(*touch.pos):
-            self.clear_file()
-            return True
-        return super().on_touch_down(touch)
-
-    def load_file(self, path):
-        with open(path, encoding="utf-8") as f:
-            self.current_code = f.read()
-        self.current_name = os.path.basename(path)
-        self.set_card(self.current_name)
-
-    def clear_file(self):
-        self.current_code = ""
-        self.current_name = ""
-        self.set_card("")
-
-    def set_card(self, name):
-        shown = bool(name)
-        self.ids.file_name.text = name
-        self.ids.file_card.opacity = 1 if shown else 0
-        self.ids.file_card.height = "48dp" if shown else "0dp"
-        self.ids.file_box.height = "56dp" if shown else "0dp"
-
-    def answer_clicked(self):
-        text = self.ids.answer_field.text.strip()
-
-        if self.running:
-            if text:
-                self.ids.answer_field.text = ""
-                self.add_bubble(text, "right")
-                self.answer = text
-                self.event.set()
-            return
-
-        if self.current_code:
-            code = self.current_code
-            self.ids.chat_box.clear_widgets()
-            self.add_bubble(self.current_name, "right")
-            self.pending = text or None
-            if text:
-                self.add_bubble(text, "right")
-        elif text:
-            code = text
+    class InterpreterScreen(BaseScreen):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.current_code = ""
+            self.current_name = ""
+            self.running = False
+            self.answer = None
             self.pending = None
-            self.ids.chat_box.clear_widgets()
-            self.add_bubble(text, "right")
-        else:
-            self.add_bubble("Напиши код или выбери файл.", "left")
-            return
+            self.event = threading.Event()
 
-        self.ids.answer_field.text = ""
-        self.running = True
-        threading.Thread(target=self.run_code, args=(code,), daemon=True).start()
+        def on_touch_down(self, touch):
+            card = self.ids.file_card
+            if card.opacity and card.collide_point(*touch.pos):
+                self.clear_file()
+                return True
+            return super().on_touch_down(touch)
 
-    def fake_input(self, prompt=""):
-        if prompt:
-            self.add_bubble(str(prompt), "left")
-        if self.pending is not None:
-            answer, self.pending = self.pending, None
-            return answer
-        self.event.clear()
-        self.event.wait()
-        return self.answer
+        def load_file(self, path):
+            with open(path, encoding="utf-8") as f:
+                self.current_code = f.read()
+            self.current_name = os.path.basename(path)
+            self.set_card(self.current_name)
 
-    def run_code(self, code):
-        pipe = OutputPipe(self.add_bubble)
-        env = {"__builtins__": __builtins__, "input": self.fake_input}
-        try:
-            with contextlib.redirect_stdout(pipe):
-                exec(code, env)
-        except (Exception, SystemExit) as e:
-            self.add_bubble(f"Ошибка: {e}", "left")
-        self.running = False
+        def clear_file(self):
+            self.current_code = ""
+            self.current_name = ""
+            self.set_card("")
 
-    @mainthread
-    def add_bubble(self, text, side):
-        max_bubble_w = min(Window.width * 0.78, dp(480))
-        pad_x = dp(24)
-        pad_y = dp(14)
-        max_text_w = max_bubble_w - pad_x
+        def set_card(self, name):
+            shown = bool(name)
+            self.ids.file_name.text = name
+            self.ids.file_card.opacity = 1 if shown else 0
+            self.ids.file_card.height = "48dp" if shown else "0dp"
+            self.ids.file_box.height = "56dp" if shown else "0dp"
 
-        font = "font.ttf" if os.path.exists("font.ttf") else "Roboto"
-        font_sz = sp(15)
+        def answer_clicked(self):
+            text = self.ids.answer_field.text.strip()
 
-        core = CoreLabel(text=text, font_size=font_sz, font_name=font)
-        core.refresh()
-        tw, th = core.texture.size
+            if self.running:
+                if text:
+                    self.ids.answer_field.text = ""
+                    self.add_bubble(text, "right")
+                    self.answer = text
+                    self.event.set()
+                return
 
-        if tw > max_text_w:
-            is_wrapped = True
-            core = CoreLabel(
-                text=text,
-                font_size=font_sz,
-                font_name=font,
-                text_size=(max_text_w, None),
-            )
+            if self.current_code:
+                code = self.current_code
+                self.ids.chat_box.clear_widgets()
+                self.add_bubble(self.current_name, "right")
+                self.pending = text or None
+                if text:
+                    self.add_bubble(text, "right")
+            elif text:
+                code = text
+                self.pending = None
+                self.ids.chat_box.clear_widgets()
+                self.add_bubble(text, "right")
+            else:
+                self.add_bubble("Напиши код или выбери файл.", "left")
+                return
+
+            self.ids.answer_field.text = ""
+            self.running = True
+            threading.Thread(target=self.run_code, args=(code,), daemon=True).start()
+
+        def fake_input(self, prompt=""):
+            if prompt:
+                self.add_bubble(str(prompt), "left")
+            if self.pending is not None:
+                answer, self.pending = self.pending, None
+                return answer
+            self.event.clear()
+            self.event.wait()
+            return self.answer
+
+        def run_code(self, code):
+            pipe = OutputPipe(self.add_bubble)
+            env = {"__builtins__": __builtins__, "input": self.fake_input}
+            try:
+                with contextlib.redirect_stdout(pipe):
+                    exec(code, env)
+            except (Exception, SystemExit) as e:
+                self.add_bubble(f"Ошибка: {e}", "left")
+            self.running = False
+
+        @mainthread
+        def add_bubble(self, text, side):
+            max_bubble_w = min(Window.width * 0.78, dp(480))
+            pad_x = dp(24)
+            pad_y = dp(14)
+            max_text_w = max_bubble_w - pad_x
+
+            font = "font.ttf" if os.path.exists("font.ttf") else "Roboto"
+            font_sz = sp(15)
+
+            core = CoreLabel(text=text, font_size=font_sz, font_name=font)
             core.refresh()
             tw, th = core.texture.size
-            final_tw = max_text_w
-            final_th = th
-        else:
-            is_wrapped = False
-            final_tw = tw
-            final_th = th
 
-        bubble_w = max(final_tw + pad_x, dp(52))
-        bubble_h = max(final_th + pad_y, dp(36))
-
-        radii = (
-            [dp(16), dp(16), dp(3), dp(16)]
-            if side == "right"
-            else [dp(16), dp(16), dp(16), dp(3)]
-        )
-        color = (
-            (0.169, 0.322, 0.471, 1)
-            if side == "right"
-            else (0.137, 0.161, 0.196, 1)
-        )
-
-        bubble = Bubble(
-            text,
-            size_hint=(None, None),
-            size=(bubble_w, bubble_h),
-            padding=[dp(12), dp(7), dp(12), dp(7)],
-            md_bg_color=color,
-            radius=radii,
-            pos_hint={"right": 1} if side == "right" else {"x": 0},
-        )
-
-        label = Label(
-            text=text,
-            font_name=font,
-            font_size=font_sz,
-            color=(1, 1, 1, 1),
-            size_hint=(None, None),
-            size=(final_tw, final_th),
-            text_size=(max_text_w, None) if is_wrapped else (None, None),
-            halign="left",
-            valign="middle",
-        )
-
-        bubble.add_widget(label)
-        self.ids.chat_box.add_widget(bubble)
-        Clock.schedule_once(
-            lambda dt: setattr(self.ids.scroll_view, "scroll_y", 0), 0.05
-        )
-
-
-class FilesScreen(BaseScreen):
-    def on_enter(self):
-        box = self.ids.files_box
-        box.clear_widgets()
-        os.makedirs(SCRIPTS_DIR, exist_ok=True)
-        for name in sorted(os.listdir(SCRIPTS_DIR)):
-            if not name.endswith(".py"):
-                continue
-            path = os.path.join(SCRIPTS_DIR, name)
-            box.add_widget(
-                MDButton(
-                    MDButtonText(text=name),
-                    on_release=lambda btn, p=path: self.open_file(p),
+            if tw > max_text_w:
+                is_wrapped = True
+                core = CoreLabel(
+                    text=text,
+                    font_size=font_sz,
+                    font_name=font,
+                    text_size=(max_text_w, None),
                 )
+                core.refresh()
+                tw, th = core.texture.size
+                final_tw = max_text_w
+                final_th = th
+            else:
+                is_wrapped = False
+                final_tw = tw
+                final_th = th
+
+            bubble_w = max(final_tw + pad_x, dp(52))
+            bubble_h = max(final_th + pad_y, dp(36))
+
+            radii = (
+                [dp(16), dp(16), dp(3), dp(16)]
+                if side == "right"
+                else [dp(16), dp(16), dp(16), dp(3)]
+            )
+            color = (
+                (0.169, 0.322, 0.471, 1)
+                if side == "right"
+                else (0.137, 0.161, 0.196, 1)
             )
 
-    def open_file(self, path):
-        self.manager.get_screen("interpreter").load_file(path)
-        self.manager.current = "interpreter"
+            bubble = Bubble(
+                text,
+                size_hint=(None, None),
+                size=(bubble_w, bubble_h),
+                padding=[dp(12), dp(7), dp(12), dp(7)],
+                md_bg_color=color,
+                radius=radii,
+                pos_hint={"right": 1} if side == "right" else {"x": 0},
+            )
 
+            label = Label(
+                text=text,
+                font_name=font,
+                font_size=font_sz,
+                color=(1, 1, 1, 1),
+                size_hint=(None, None),
+                size=(final_tw, final_th),
+                text_size=(max_text_w, None) if is_wrapped else (None, None),
+                halign="left",
+                valign="middle",
+            )
 
-class MyApp(MDApp):
-    def build(self):
-        self.theme_cls.theme_style = "Dark"
-        Window.softinput_mode = "below_target"
-        Builder.load_string(KV)
-        sm = ScreenManager()
-        sm.add_widget(MenuScreen(name="menu"))
-        sm.add_widget(RockPaperScissorsScreen(name="rps"))
-        sm.add_widget(InterpreterScreen(name="interpreter"))
-        sm.add_widget(FilesScreen(name="files"))
-        return sm
+            bubble.add_widget(label)
+            self.ids.chat_box.add_widget(bubble)
+            Clock.schedule_once(
+                lambda dt: setattr(self.ids.scroll_view, "scroll_y", 0), 0.05
+            )
 
+    class FilesScreen(BaseScreen):
+        def on_enter(self):
+            box = self.ids.files_box
+            box.clear_widgets()
+            os.makedirs(SCRIPTS_DIR, exist_ok=True)
+            for name in sorted(os.listdir(SCRIPTS_DIR)):
+                if not name.endswith(".py"):
+                    continue
+                path = os.path.join(SCRIPTS_DIR, name)
+                box.add_widget(
+                    MDButton(
+                        MDButtonText(text=name),
+                        on_release=lambda btn, p=path: self.open_file(p),
+                    )
+                )
 
-MyApp().run()
+        def open_file(self, path):
+            self.manager.get_screen("interpreter").load_file(path)
+            self.manager.current = "interpreter"
+
+    class MyApp(MDApp):
+        def build(self):
+            self.theme_cls.theme_style = "Dark"
+            Window.softinput_mode = "below_target"
+            Builder.load_string(KV)
+            sm = ScreenManager()
+            sm.add_widget(MenuScreen(name="menu"))
+            sm.add_widget(RockPaperScissorsScreen(name="rps"))
+            sm.add_widget(InterpreterScreen(name="interpreter"))
+            sm.add_widget(FilesScreen(name="files"))
+            return sm
+
+    if __name__ == "__main__":
+        MyApp().run()
+
+except Exception:
+    err_msg = traceback.format_exc()
+    try:
+        log_path = "/storage/emulated/0/Download/folyan_super_crash.txt"
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(err_msg)
+    except:
+        pass
+    raise
