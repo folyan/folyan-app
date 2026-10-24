@@ -4,7 +4,7 @@ package.name = folyanapp
 package.domain = org.folyan
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,ttf,otf,json,txt
+source.include_exts = py,png,jpg,kv,atlas,ttf,otf,json,txt,glsl,md,po,pot
 
 version = 0.4.1
 
