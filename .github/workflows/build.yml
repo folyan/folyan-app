@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     environment: env
 
     steps:
@@ -55,6 +56,10 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" virtualenv
           pip install --upgrade https://github.com/kivy/buildozer/archive/master.zip
+
+      - name: Allow hostpython3 install into /usr/local
+        run: |
+          sudo chown -R runner:runner /usr/local/lib /usr/local/bin
 
       - name: Decode Keystore
         env:
