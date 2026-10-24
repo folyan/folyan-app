@@ -6,9 +6,9 @@ package.domain = org.folyan
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf,otf,json,txt
 
-version = 0.3.1
+version = 0.4.1
 
-requirements = python3,kivy,materialyoucolor,pillow,exceptiongroup,asyncgui,asynckivy,filetype,materialshapes
+requirements = python3,kivy,materialyoucolor==3.0.3,pillow,exceptiongroup,asyncgui,asynckivy,filetype,materialshapes
 
 orientation = portrait
 fullscreen = 0
