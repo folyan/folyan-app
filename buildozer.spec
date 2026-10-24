@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,kv,atlas,ttf
 
 version = 0.3.1
 
-requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, pillow, exceptiongroup, asyncgui, asynckivy, cython==0.29.37, cryptography, materialshapes==0.3, pycairo
+requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, pillow, exceptiongroup, asyncgui, asynckivy, cython==0.29.37, cryptography
 
 orientation = portrait
 fullscreen = 0
@@ -17,7 +17,6 @@ android.minapi = 24
 android.ndk = 25b
 icon.filename = %(source.dir)s/icon.png
 p4a.branch = v2024.01.21
-p4a.local_recipes = ./recipes
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, MANAGE_EXTERNAL_STORAGE
 android.archs = arm64-v8a
 android.accept_sdk_license = True
