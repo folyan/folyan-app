@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,kv,atlas,ttf
 
 version = 0.3.1
 
-requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, pillow, exceptiongroup, asyncgui, asynckivy, cython==0.29.37
+requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, pillow, exceptiongroup, asyncgui, asynckivy, cython==0.29.37, cryptography
 
 orientation = portrait
 fullscreen = 0
