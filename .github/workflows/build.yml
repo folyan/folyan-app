@@ -8,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    
-    # ЭТА СТРОКА УКАЗЫВАЕТ GITHUB БРАТЬ СЕКРЕТЫ ИЗ ТВОЕГО ОКРУЖЕНИЯ "env"
     environment: env
 
     steps:
@@ -50,7 +48,7 @@ jobs:
           fi
           echo "$KEYSTORE_B64" | base64 --decode > ${{ github.workspace }}/release-key.keystore
 
-      - name: Build Release APK with Buildozer
+      - name: Build Release AAB with Buildozer
         env:
           P4A_RELEASE_KEYSTORE: ${{ github.workspace }}/release-key.keystore
           P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -59,8 +57,32 @@ jobs:
         run: |
           buildozer -v android release
 
+      - name: Download bundletool
+        run: |
+          wget -q https://github.com/google/bundletool/releases/latest/download/bundletool-all.jar -O bundletool.jar
+
+      - name: Convert AAB to signed APK
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          KS_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          AAB=$(ls bin/*.aab | head -n 1)
+          java -jar bundletool.jar build-apks \
+            --bundle="$AAB" \
+            --output=bin/app.apks \
+            --mode=universal \
+            --ks=${{ github.workspace }}/release-key.keystore \
+            --ks-key-alias="$KS_ALIAS" \
+            --ks-pass=env:KS_PASS \
+            --key-pass=env:KEY_PASS
+          unzip -o bin/app.apks universal.apk -d bin
+          mv bin/universal.apk bin/FolyanApp-release.apk
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FolyanApp-Release
-          path: bin/*.apk
+          path: |
+            bin/FolyanApp-release.apk
+            bin/*.aab
