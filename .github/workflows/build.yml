@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     environment: env
 
     steps:
@@ -24,6 +25,24 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Cache buildozer (p4a, NDK, recipes)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
 
       - name: Install dependencies
         run: |
@@ -57,9 +76,12 @@ jobs:
         run: |
           buildozer -v android release
 
-      - name: Download bundletool
+      - name: Download bundletool (latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          wget -q https://github.com/google/bundletool/releases/latest/download/bundletool-all.jar -O bundletool.jar
+          gh release download --repo google/bundletool --pattern 'bundletool-all-*.jar' --clobber -O bundletool.jar
+          ls -l bundletool.jar
 
       - name: Convert AAB to signed APK
         env:
@@ -79,7 +101,7 @@ jobs:
           unzip -o bin/app.apks universal.apk -d bin
           mv bin/universal.apk bin/FolyanApp-release.apk
 
-      - name: Upload APK Artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FolyanApp-Release
