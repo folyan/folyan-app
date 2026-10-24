@@ -12,30 +12,22 @@ from datetime import datetime
 
 from kivy.utils import platform
 
-PRIVATE_DIR = "/storage/emulated/0/Folyan"
+PRIVATE_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
 CRASH_FILE = os.path.join(PRIVATE_DIR, "crash.log")
 
 _native_log = None
-try:
-    os.makedirs(PRIVATE_DIR, exist_ok=True)
-    _native_log = open(CRASH_FILE, "a", encoding="utf-8")
-    faulthandler.enable(file=_native_log, all_threads=True)
-except Exception as e:
-    print(f"faulthandler не включился: {e}", file=sys.stderr)
+os.makedirs(PRIVATE_DIR, exist_ok=True)
+_native_log = open(CRASH_FILE, "a", encoding="utf-8")
+faulthandler.enable(file=_native_log, all_threads=True)
 
 
 def log_crash(exc_type, exc_value, exc_tb):
     text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     record = f"\n===== {stamp} =====\n{text}"
-    try:
-        os.makedirs(PRIVATE_DIR, exist_ok=True)
-        with open(CRASH_FILE, "a", encoding="utf-8") as f:
-            f.write(record)
-    except Exception as e:
-        print(f"Не удалось записать {CRASH_FILE}: {e}", file=sys.stderr)
-    print(record, file=sys.stderr)
-
+    os.makedirs(PRIVATE_DIR, exist_ok=True)
+    with open(CRASH_FILE, "a", encoding="utf-8") as f:
+        f.write(record)
 
 def _thread_excepthook(args):
     log_crash(args.exc_type, args.exc_value, args.exc_traceback)
@@ -46,7 +38,6 @@ threading.excepthook = _thread_excepthook
 
 
 def ask_storage_access():
-    """Просит доступ к папке: на Android 11+ открывает настройки, на старых — обычный диалог."""
     if platform != "android":
         return
     try:

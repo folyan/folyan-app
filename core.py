@@ -50,12 +50,6 @@ KV = """
         spacing: "20dp"
         md_bg_color: BG
 
-        MDLabel:
-            text: "Нажми на приложение, которое хочешь запустить"
-            halign: "center"
-            theme_text_color: "Custom"
-            text_color: (1, 1, 1, 1)
-
 <RockPaperScissorsScreen>:
     MDBoxLayout:
         orientation: "vertical"
@@ -249,15 +243,6 @@ class MenuScreen(BaseScreen):
     def on_enter(self):
         layout = self.ids.menu_layout
         layout.clear_widgets()
-
-        layout.add_widget(
-            MDLabel(
-                text="Нажми на приложение, которое хочешь запустить",
-                halign="center",
-                theme_text_color="Custom",
-                text_color=(1, 1, 1, 1),
-            )
-        )
 
         apps = [
             ("Камень, Ножницы, Бумага", "rps"),
