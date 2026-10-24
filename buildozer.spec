@@ -17,6 +17,7 @@ android.minapi = 24
 android.ndk = 25b
 icon.filename = %(source.dir)s/icon.png
 p4a.branch = v2024.01.21
+p4a.local_recipes = ./recipes
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, MANAGE_EXTERNAL_STORAGE
 android.archs = arm64-v8a
 android.accept_sdk_license = True
