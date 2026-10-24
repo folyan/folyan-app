@@ -69,6 +69,12 @@ jobs:
         run: |
           buildozer -v android release
 
+      - if: always()
+        run: |
+          F=.buildozer/android/platform/python-for-android/pythonforandroid/recipes/hostpython3/__init__.py
+          grep -n -E "DESTDIR|prefix|root|install|def build_arch" "$F" || true
+          sed -n '/def build_arch/,/shprint(sh.cp/p' "$F" || true
+
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
