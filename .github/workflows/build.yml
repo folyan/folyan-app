@@ -8,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
-    # ЭТА СТРОКА УКАЗЫВАЕТ GITHUB БРАТЬ СЕКРЕТЫ ИЗ ТВОЕГО ОКРУЖЕНИЯ "env"
     environment: env
 
     steps:
