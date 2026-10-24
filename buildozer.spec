@@ -4,11 +4,12 @@ package.name = folyanapp
 package.domain = org.folyan
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,ttf
+source.include_exts = py,png,jpg,kv,atlas,ttf, pyx
+source.exclude_patterns = core.pyx
 
-version = 0.1
+version = 0.2.1
 
-requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, android
+requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, android, cython
 
 orientation = portrait
 fullscreen = 0

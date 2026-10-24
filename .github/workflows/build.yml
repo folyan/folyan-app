@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Release APK
 
 on:
   push:
@@ -37,12 +37,20 @@ jobs:
           pip install "cython<3.0" virtualenv
           pip install --upgrade https://github.com/kivy/buildozer/archive/master.zip
 
-      - name: Build APK with Buildozer
+      - name: Decode Keystore
         run: |
-          buildozer -v android debug
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/release-key.keystore
+      - name: Build Release APK with Buildozer
+        env:
+          P4A_RELEASE_KEYSTORE: ${{ github.workspace }}/release-key.keystore
+          P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
+          P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
+          P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          buildozer -v android release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FolyanApp
+          name: FolyanApp-Release
           path: bin/*.apk
