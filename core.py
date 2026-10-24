@@ -39,8 +39,7 @@ KV = """
     style: "elevated"
     radius: [20]
 
-    Image:
-        fit_mode: "contain"
+    FitImage:
         source: root.source
 
 <MenuScreen>:
