@@ -6,7 +6,7 @@ package.domain = org.folyan
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf,otf,json,txt,glsl,md,po,pot
 source.exclude_dirs = .git, .github, bin, venv, __pycache__
-version = 0.5.1
+version = 0.5.2
 
 requirements = python3,kivy,materialyoucolor==3.0.3,pillow,exceptiongroup,asyncgui,asynckivy,filetype,materialshapes,pycairo
 
