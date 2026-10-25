@@ -55,9 +55,13 @@ KV = """
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
-        spacing: "15dp"
+        spacing: "20dp"
 
-        # Монетка в главном меню сверху
+        # Верхний отступ, чтобы сместить монетку ближе к центру
+        Widget:
+            size_hint_y: 0.1
+
+        # Монетка строго посередине
         FloatLayout:
             size_hint_y: None
             height: "150dp"
@@ -66,7 +70,7 @@ KV = """
             MDCard:
                 id: coin_card
                 size_hint: None, None
-                size: "140dp", "140dp"
+                size: "150dp", "150dp"
                 pos_hint: {"center_x": 0.5, "center_y": 0.5}
                 radius: [self.height / 2]
                 style: "outlined"
@@ -76,32 +80,17 @@ KV = """
                 ripple_behavior: True
                 on_release: root.flip_coin()
 
-                MDBoxLayout:
-                    orientation: "vertical"
-                    padding: "10dp"
-                    spacing: "4dp"
-                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                MDLabel:
+                    id: coin_label
+                    text: "0"
+                    halign: "center"
+                    valign: "middle"
+                    font_size: "54sp"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: (0.92, 0.96, 1, 1)
 
-                    MDLabel:
-                        id: coin_label
-                        text: "Монетка"
-                        halign: "center"
-                        valign: "middle"
-                        font_size: "18sp"
-                        bold: True
-                        theme_text_color: "Custom"
-                        text_color: (0.92, 0.96, 1, 1)
-
-                    MDLabel:
-                        id: status_label
-                        text: "Нажми"
-                        halign: "center"
-                        valign: "middle"
-                        font_size: "12sp"
-                        theme_text_color: "Custom"
-                        text_color: (0.55, 0.65, 0.75, 1)
-
-        # Список кнопок меню
+        # Кнопки меню снизу
         ScrollView:
             do_scroll_x: False
             MDBoxLayout:
@@ -384,11 +373,9 @@ class MenuScreen(BaseScreen):
         self.flipping = True
         coin = self.ids.coin_card
         label = self.ids.coin_label
-        status = self.ids.status_label
 
-        label.font_size = "16sp"
-        label.text = "Бросок..."
-        status.text = ""
+        label.font_size = "18sp"
+        label.text = "..."
 
         final_result = random.choice(["0", "1"])
         delays = [0.05, 0.05, 0.06, 0.08, 0.11, 0.15]
@@ -400,15 +387,14 @@ class MenuScreen(BaseScreen):
 
             def on_mid(anim, widget):
                 if step_idx == total_flips - 1:
-                    label.font_size = "36sp"
+                    label.font_size = "54sp"
                     label.text = final_result
-                    status.text = "Выпало"
                 else:
-                    label.font_size = "16sp"
+                    label.font_size = "18sp"
                     cur = label.text
                     label.text = "1" if cur == "0" else "0"
 
-                anim_out = Animation(width=dp(140), duration=d, t="out_quad")
+                anim_out = Animation(width=dp(150), duration=d, t="out_quad")
 
                 def on_end(anim2, widget2):
                     if step_idx + 1 < total_flips:
@@ -426,7 +412,7 @@ class MenuScreen(BaseScreen):
 
     def on_leave(self):
         Animation.cancel_all(self.ids.coin_card)
-        self.ids.coin_card.width = dp(140)
+        self.ids.coin_card.width = dp(150)
         self.flipping = False
 
 
