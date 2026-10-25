@@ -18,11 +18,11 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.textfield import MDTextField
 
-from rockscissorspaper import check_win
-from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
+from RockScissorsPaper import check_win
+from PasswordManager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 
 APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
-SCRIPTS_DIR = APP_DIR + "userscripts/"
+SCRIPTS_DIR = APP_DIR + "UserScripts/"
 USERDATA_DIR = APP_DIR + "userdata/"
 
 
@@ -411,6 +411,7 @@ class InterpreterScreen(BaseScreen):
         self.running = False
         self.answer = None
         self.pending = None
+        self.env = None
         self.event = threading.Event()
 
     def on_touch_down(self, touch):
@@ -429,6 +430,7 @@ class InterpreterScreen(BaseScreen):
     def clear_file(self):
         self.current_code = ""
         self.current_name = ""
+        self.env = None
         self.set_card("")
 
     def set_card(self, name):
@@ -451,6 +453,7 @@ class InterpreterScreen(BaseScreen):
 
         if self.current_code:
             code = self.current_code
+            fresh = True
             self.ids.chat_box.clear_widgets()
             self.add_bubble(self.current_name, "right")
             self.pending = text or None
@@ -458,8 +461,8 @@ class InterpreterScreen(BaseScreen):
                 self.add_bubble(text, "right")
         elif text:
             code = text
+            fresh = False
             self.pending = None
-            self.ids.chat_box.clear_widgets()
             self.add_bubble(text, "right")
         else:
             self.add_bubble("Напиши код или выбери файл.", "left")
@@ -467,7 +470,7 @@ class InterpreterScreen(BaseScreen):
 
         self.ids.answer_field.text = ""
         self.running = True
-        threading.Thread(target=self.run_code, args=(code,), daemon=True).start()
+        threading.Thread(target=self.run_code, args=(code, fresh), daemon=True).start()
 
     def fake_input(self, prompt=""):
         if prompt:
@@ -479,9 +482,11 @@ class InterpreterScreen(BaseScreen):
         self.event.wait()
         return self.answer
 
-    def run_code(self, code):
+    def run_code(self, code, fresh):
         pipe = OutputPipe(self.add_bubble)
-        env = {"__builtins__": __builtins__, "input": self.fake_input}
+        if fresh or self.env is None:
+            self.env = {"__builtins__": __builtins__, "input": self.fake_input}
+        env = self.env
         try:
             with contextlib.redirect_stdout(pipe):
                 exec(code, env)
