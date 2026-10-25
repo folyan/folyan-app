@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import random
 import threading
 import contextlib
 
@@ -11,14 +12,15 @@ from kivy.clock import Clock, mainthread
 from kivy.core.text import Label as CoreLabel
 from kivy.core.clipboard import Clipboard
 from kivy.uix.label import Label
+from kivy.animation import Animation
 from kivy.metrics import dp, sp
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.textfield import MDTextField
+from kivymd.uix.card import MDCard
 
-from rockscissorspaper import check_win
 from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 
 APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
@@ -35,6 +37,7 @@ def userdata_dir():
         pass
     return MDApp.get_running_app().user_data_dir
 
+
 KV = """
 #:set BG (0.055, 0.086, 0.129, 1)
 
@@ -46,16 +49,6 @@ KV = """
     MDButtonText:
         text: root.caption
 
-<ChoiceCard@MDCard>:
-    source: ""
-    size_hint: None, None
-    size: "100dp", "100dp"
-    style: "elevated"
-    radius: [20]
-
-    FitImage:
-        source: root.source
-
 <MenuScreen>:
     MDBoxLayout:
         id: menu_layout
@@ -64,41 +57,58 @@ KV = """
         spacing: "20dp"
         md_bg_color: BG
 
-<RockPaperScissorsScreen>:
+<CoinScreen>:
+    md_bg_color: BG
+
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
-        spacing: "20dp"
-        md_bg_color: BG
-
-        MDIconButton:
-            icon: "arrow-left"
-            theme_icon_color: "Custom"
-            icon_color: (1, 1, 1, 1)
-            on_release: root.go_to("menu")
-
-        MDLabel:
-            id: label
-            text: "Камень, Ножницы, Бумага"
-            halign: "center"
-            theme_text_color: "Custom"
-            text_color: (1, 1, 1, 1)
+        spacing: "10dp"
 
         MDBoxLayout:
-            orientation: "horizontal"
-            spacing: "10dp"
+            size_hint_y: None
+            height: "48dp"
 
-            ChoiceCard:
-                source: "rock.png"
-                on_release: root.on_image_click("rock")
+            MDIconButton:
+                icon: "arrow-left"
+                theme_icon_color: "Custom"
+                icon_color: (1, 1, 1, 1)
+                pos_hint: {"center_y": 0.5}
+                on_release: root.go_to("menu")
 
-            ChoiceCard:
-                source: "scissors.png"
-                on_release: root.on_image_click("scissors")
+        FloatLayout:
+            MDCard:
+                id: coin_card
+                size_hint: None, None
+                size: "160dp", "160dp"
+                pos_hint: {"center_x": 0.5, "center_y": 0.55}
+                radius: [self.height / 2]
+                style: "outlined"
+                line_color: (0.28, 0.42, 0.56, 0.8)
+                line_width: 2
+                md_bg_color: (0.085, 0.13, 0.19, 1)
+                ripple_behavior: True
+                on_release: root.flip()
 
-            ChoiceCard:
-                source: "paper.png"
-                on_release: root.on_image_click("paper")
+                MDLabel:
+                    id: coin_label
+                    text: "0"
+                    halign: "center"
+                    valign: "middle"
+                    font_size: "68sp"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: (0.92, 0.96, 1, 1)
+
+            MDLabel:
+                id: status_label
+                text: "Нажми на монетку"
+                halign: "center"
+                adaptive_height: True
+                pos_hint: {"center_x": 0.5, "center_y": 0.35}
+                font_size: "14sp"
+                theme_text_color: "Custom"
+                text_color: (0.55, 0.65, 0.75, 1)
 
 <InterpreterScreen>:
     MDBoxLayout:
@@ -345,7 +355,7 @@ class MenuScreen(BaseScreen):
         layout.clear_widgets()
 
         apps = [
-            ("Камень, Ножницы, Бумага", "rps"),
+            ("Монетка (0 / 1)", "coin"),
             ("Интерпретатор", "interpreter"),
             ("Менеджер паролей", "passwords"),
             ("Выход", "exit"),
@@ -366,11 +376,51 @@ class MenuScreen(BaseScreen):
             layout.add_widget(btn)
 
 
-class RockPaperScissorsScreen(BaseScreen):
-    def on_image_click(self, choice):
-        result = check_win(choice)
-        results = {"tie": "Ничья!", "win": "Ты выиграл!", "lose": "Ты проиграл!"}
-        self.ids.label.text = results.get(result, results["lose"])
+class CoinScreen(BaseScreen):
+    flipping = False
+
+    def flip(self):
+        if self.flipping:
+            return
+        self.flipping = True
+        self.ids.status_label.text = "Бросок..."
+        coin = self.ids.coin_card
+        final_result = random.choice(["0", "1"])
+        delays = [0.05, 0.05, 0.06, 0.08, 0.11, 0.15]
+        total_flips = len(delays)
+
+        def do_step(step_idx):
+            d = delays[step_idx]
+            anim_in = Animation(width=dp(6), duration=d, t="in_quad")
+
+            def on_mid(anim, widget):
+                if step_idx == total_flips - 1:
+                    self.ids.coin_label.text = final_result
+                else:
+                    cur = self.ids.coin_label.text
+                    self.ids.coin_label.text = "1" if cur == "0" else "0"
+
+                anim_out = Animation(width=dp(160), duration=d, t="out_quad")
+
+                def on_end(anim2, widget2):
+                    if step_idx + 1 < total_flips:
+                        do_step(step_idx + 1)
+                    else:
+                        self.flipping = False
+                        self.ids.status_label.text = f"Выпало: {final_result}"
+
+                anim_out.bind(on_complete=on_end)
+                anim_out.start(coin)
+
+            anim_in.bind(on_complete=on_mid)
+            anim_in.start(coin)
+
+        do_step(0)
+
+    def on_leave(self):
+        Animation.cancel_all(self.ids.coin_card)
+        self.ids.coin_card.width = dp(160)
+        self.flipping = False
 
 
 class Bubble(MDBoxLayout):
@@ -709,7 +759,7 @@ class FolyanApp(MDApp):
         Builder.load_string(KV)
         sm = ScreenManager()
         sm.add_widget(MenuScreen(name="menu"))
-        sm.add_widget(RockPaperScissorsScreen(name="rps"))
+        sm.add_widget(CoinScreen(name="coin"))
         sm.add_widget(InterpreterScreen(name="interpreter"))
         sm.add_widget(FilesScreen(name="files"))
         sm.add_widget(PasswordScreen(name="passwords"))
