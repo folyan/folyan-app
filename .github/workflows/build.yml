@@ -5,10 +5,13 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     environment: env
 
     steps:
@@ -16,7 +19,7 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - uses: actions/setup-python@v5
@@ -39,59 +42,46 @@ jobs:
           restore-keys: |
             buildozer-v2-${{ runner.os }}-
 
-      - run: |
-          sudo apt update
-          sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
             build-essential ccache libltdl-dev
-
-      - run: |
+          sudo find /usr/local -xdev -type d -not -user runner -print0 | sudo xargs -0 -r -P 8 -n 500 chown runner:runner
           pip install --upgrade pip
           pip install "cython<3.0" virtualenv
           pip install --upgrade https://github.com/kivy/buildozer/archive/master.zip
 
-      - run: |
-          sudo chown -R runner:runner /usr/local
-
-      - env:
+      - name: Decode keystore
+        env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            exit 1
-          fi
-          echo "$KEYSTORE_B64" | base64 --decode > ${{ github.workspace }}/release-key.keystore
+          test -n "$KEYSTORE_B64" || { echo "KEYSTORE_BASE64 secret is empty"; exit 1; }
+          echo "$KEYSTORE_B64" | base64 --decode > "$GITHUB_WORKSPACE/release-key.keystore"
 
-      - env:
+      - name: Build AAB
+        env:
           P4A_RELEASE_KEYSTORE: ${{ github.workspace }}/release-key.keystore
           P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
           P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
           P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          buildozer -v android release
+        run: buildozer android release
 
-      - if: always()
-        run: |
-          F=.buildozer/android/platform/python-for-android/pythonforandroid/recipes/hostpython3/__init__.py
-          grep -n -E "DESTDIR|prefix|root|install|def build_arch" "$F" || true
-                    sed -n "95,125p" "$F"
-
-      - env:
+      - name: Make universal APK
+        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download --repo google/bundletool --pattern 'bundletool-all-*.jar' --clobber -O bundletool.jar
-          ls -l bundletool.jar
-
-      - env:
           KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASS: ${{ secrets.KEY_PASSWORD }}
           KS_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
+          gh release download --repo google/bundletool --pattern 'bundletool-all-*.jar' --clobber -O bundletool.jar
           AAB=$(ls bin/*.aab | head -n 1)
           java -jar bundletool.jar build-apks \
             --bundle="$AAB" \
             --output=bin/app.apks \
             --mode=universal \
-            --ks=${{ github.workspace }}/release-key.keystore \
+            --ks="$GITHUB_WORKSPACE/release-key.keystore" \
             --ks-key-alias="$KS_ALIAS" \
             --ks-pass="pass:$KS_PASS" \
             --key-pass="pass:$KEY_PASS"
@@ -101,6 +91,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: FolyanApp-Release
-          path: |
-            bin/FolyanApp-release.apk
-            bin/*.aab
+          path: bin/FolyanApp-release.apk
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$GITHUB_WORKSPACE/release-key.keystore"
