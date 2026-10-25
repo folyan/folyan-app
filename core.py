@@ -55,13 +55,13 @@ KV = """
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
-        spacing: "20dp"
+        spacing: "10dp"
 
-        # Верхний отступ, чтобы сместить монетку ближе к центру
+        # Верхняя пустая зона (выталкивает монетку в самый центр)
         Widget:
-            size_hint_y: 0.1
+            size_hint_y: 1
 
-        # Монетка строго посередине
+        # Монета строго по центру экрана
         FloatLayout:
             size_hint_y: None
             height: "150dp"
@@ -90,16 +90,22 @@ KV = """
                     theme_text_color: "Custom"
                     text_color: (0.92, 0.96, 1, 1)
 
-        # Кнопки меню снизу
+        # Нижняя пустая зона одинакового размера с верхней
+        Widget:
+            size_hint_y: 1
+
+        # Кнопки в самом низу
         ScrollView:
             do_scroll_x: False
+            size_hint_y: None
+            height: "180dp"
             MDBoxLayout:
                 id: buttons_box
                 orientation: "vertical"
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: "15dp"
-                padding: [0, "10dp", 0, "10dp"]
+                spacing: "12dp"
+                padding: [0, 0, 0, "10dp"]
 
 <InterpreterScreen>:
     MDBoxLayout:
