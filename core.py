@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import traceback
 import threading
 import contextlib
 
@@ -19,22 +18,12 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.textfield import MDTextField
 
-from RockScissorsPaper import check_win
-from PasswordManager import generate_password, backend_info, METHODS
+from rockscissorspaper import check_win
+from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 
 APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
-SCRIPTS_DIR = APP_DIR + "UserScripts/"
+SCRIPTS_DIR = APP_DIR + "userscripts/"
 USERDATA_DIR = APP_DIR + "userdata/"
-LOG_FILE = APP_DIR + "folyan.log"
-
-
-def log(msg):
-    try:
-        os.makedirs(APP_DIR, exist_ok=True)
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
-    except OSError:
-        pass
 
 
 def userdata_dir():
@@ -247,6 +236,7 @@ KV = """
 
                     MDTextField:
                         id: salt_field
+                        text: "FolyanApp"
                         MDTextFieldHintText:
                             text: "Соль"
 
@@ -309,34 +299,9 @@ KV = """
                     MDTextField:
                         id: iterations_field
                         input_filter: "int"
-                        text: "3637142"
+                        text: "500000"
                         MDTextFieldHintText:
                             text: "Итерации"
-
-                MDLabel:
-                    id: method_label
-                    text: "Метод: обычный"
-                    adaptive_height: True
-                    theme_text_color: "Custom"
-                    text_color: (1, 1, 1, 1)
-
-                MDBoxLayout:
-                    size_hint_y: None
-                    height: "48dp"
-                    spacing: "10dp"
-
-                    MenuButton:
-                        caption: "Обычный"
-                        on_release: root.set_method("standard")
-
-                    MenuButton:
-                        caption: "OpenSSL"
-                        on_release: root.set_method("openssl")
-
-                MenuButton:
-                    id: bench_btn
-                    caption: "Замер: обычный, затем OpenSSL"
-                    on_release: root.benchmark()
 
                 MenuButton:
                     id: gen_btn
@@ -625,15 +590,12 @@ files_screen_code = FilesScreen = type(
 
 class PasswordScreen(BaseScreen):
     FIELDS = ("salt", "master", "site", "iterations")
-    DEFAULT_ITERATIONS = "3637142"
-    METHOD_NAMES = {"standard": "обычный", "openssl": "OpenSSL"}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.busy = False
         self.loading = False
         self.result = ""
-        self.method = "standard"
 
     def state_path(self):
         return os.path.join(userdata_dir(), "passwords.json")
@@ -653,11 +615,12 @@ class PasswordScreen(BaseScreen):
                 check.active = True
             else:
                 check.active = False
+        if not self.ids.salt_field.text:
+            self.ids.salt_field.text = DEFAULT_SALT
         if not self.ids.iterations_field.text:
-            self.ids.iterations_field.text = self.DEFAULT_ITERATIONS
+            self.ids.iterations_field.text = str(DEFAULT_ITERATIONS)
         self.show_master_warning(self.ids.master_check.active)
         self.loading = False
-        log("passwords screen: " + backend_info())
 
     def save_state(self):
         if self.loading:
@@ -670,8 +633,8 @@ class PasswordScreen(BaseScreen):
         try:
             with open(self.state_path(), "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False)
-        except OSError as e:
-            log(f"save_state error: {e}")
+        except OSError:
+            pass
 
     def show_master_warning(self, on):
         self.ids.master_warn.opacity = 1 if on else 0
@@ -680,22 +643,6 @@ class PasswordScreen(BaseScreen):
     def on_master_check(self, active):
         self.show_master_warning(active)
         self.save_state()
-
-    def set_method(self, method):
-        self.method = method
-        self.ids.method_label.text = "Метод: " + self.METHOD_NAMES[method]
-
-    def parse_iterations(self):
-        try:
-            value = int(self.ids.iterations_field.text)
-        except ValueError:
-            return 0
-        return value if value >= 1 else 0
-
-    def set_busy(self, busy):
-        self.busy = busy
-        self.ids.gen_btn.disabled = busy
-        self.ids.bench_btn.disabled = busy
 
     def generate(self):
         if self.busy:
@@ -706,77 +653,44 @@ class PasswordScreen(BaseScreen):
         if not (salt and master and site):
             self.ids.result_label.text = "Заполни все поля!"
             return
-        iterations = self.parse_iterations()
-        if not iterations:
+        try:
+            iterations = int(self.ids.iterations_field.text)
+        except ValueError:
+            iterations = 0
+        if iterations < 1:
             self.ids.result_label.text = "Итерации: целое число от 1"
             return
 
         self.save_state()
-        self.set_busy(True)
+        self.busy = True
+        self.ids.gen_btn.disabled = True
         self.ids.result_label.text = "Считаю..."
         threading.Thread(
             target=self._worker,
-            args=(master, salt, site, iterations, self.method),
+            args=(master, salt, site, iterations),
             daemon=True,
         ).start()
 
-    def _worker(self, master, salt, site, iterations, method):
+    def _worker(self, master, salt, site, iterations):
         start = time.perf_counter()
         try:
-            res = generate_password(master, salt, site, iterations, method)
+            res = generate_password(master, salt, site, iterations)
         except Exception as e:
-            log(f"generate error method={method}: {e}\n{traceback.format_exc()}")
             self._finish("", str(e))
             return
         elapsed = time.perf_counter() - start
-        log(f"generate method={method} iterations={iterations} time={elapsed:.2f}s")
         self._finish(res, None, elapsed)
 
     @mainthread
     def _finish(self, res, error, elapsed=0.0):
-        self.set_busy(False)
+        self.busy = False
+        self.ids.gen_btn.disabled = False
         if error:
             self.result = ""
             self.ids.result_label.text = f"Ошибка: {error}"
         else:
             self.result = res
             self.ids.result_label.text = f"Результат: {res}\n({elapsed:.2f} с)"
-
-    def benchmark(self):
-        if self.busy:
-            return
-        iterations = self.parse_iterations()
-        if not iterations:
-            self.ids.result_label.text = "Итерации: целое число от 1"
-            return
-        self.set_busy(True)
-        self.ids.result_label.text = "Замер..."
-        threading.Thread(
-            target=self._bench_worker, args=(iterations,), daemon=True
-        ).start()
-
-    def _bench_worker(self, iterations):
-        lines = []
-        outputs = []
-        for method in METHODS:
-            start = time.perf_counter()
-            try:
-                outputs.append(generate_password("test", "salt", "site", iterations, method))
-                text = f"{time.perf_counter() - start:.2f} с"
-            except Exception as e:
-                log(f"bench error method={method}: {e}\n{traceback.format_exc()}")
-                text = f"ошибка ({e})"
-            lines.append(f"{self.METHOD_NAMES[method]}: {text}")
-        if len(outputs) == len(METHODS):
-            lines.append("результаты совпадают" if len(set(outputs)) == 1 else "РЕЗУЛЬТАТЫ РАЗНЫЕ")
-        summary = "\n".join(lines)
-        log(f"bench iterations={iterations}: " + " | ".join(lines))
-        self._bench_done(summary)
-
-    @mainthread
-    def _bench_done(self, summary):
-        self.set_busy(False)
-        self.ids.result_label.text = summary
 
     def copy_result(self):
         if self.result:
