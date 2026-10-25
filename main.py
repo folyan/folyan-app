@@ -1,41 +1,4 @@
-import os
-import sys
-import threading
-import traceback
-import faulthandler
-from datetime import datetime
-
 from kivy.utils import platform
-
-PRIVATE_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
-CRASH_FILE = os.path.join(PRIVATE_DIR, "crash.log")
-
-try:
-    os.makedirs(PRIVATE_DIR, exist_ok=True)
-    _native_log = open(CRASH_FILE, "a", encoding="utf-8")
-    faulthandler.enable(file=_native_log, all_threads=True)
-except OSError:
-    _native_log = None
-
-
-def log_crash(exc_type, exc_value, exc_tb):
-    text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    record = f"\n===== {stamp} =====\n{text}"
-    try:
-        os.makedirs(PRIVATE_DIR, exist_ok=True)
-        with open(CRASH_FILE, "a", encoding="utf-8") as f:
-            f.write(record)
-    except OSError:
-        pass
-
-
-def _thread_excepthook(args):
-    log_crash(args.exc_type, args.exc_value, args.exc_traceback)
-
-
-sys.excepthook = log_crash
-threading.excepthook = _thread_excepthook
 
 
 def ask_storage_access():
@@ -66,26 +29,15 @@ def ask_storage_access():
                 Permission.WRITE_EXTERNAL_STORAGE,
             ])
     except Exception:
-        log_crash(*sys.exc_info())
+        pass
 
 
 def main():
-    try:
-        with open(CRASH_FILE, "a", encoding="utf-8") as f:
-            f.write(f"\n----- start {datetime.now():%Y-%m-%d %H:%M:%S} pid={os.getpid()} -----\n")
-    except Exception:
-        pass
-
     ask_storage_access()
 
-    try:
-        from core import FolyanApp
-        FolyanApp().run()
-    except BaseException:
-        log_crash(*sys.exc_info())
-        raise
+    from core import FolyanApp
+    FolyanApp().run()
 
 
 if __name__ == "__main__":
     main()
-

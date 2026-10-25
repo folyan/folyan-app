@@ -18,11 +18,11 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.textfield import MDTextField
 
-from RockScissorsPaper import check_win
-from PasswordManager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
+from rockscissorspaper import check_win
+from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 
 APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
-SCRIPTS_DIR = APP_DIR + "UserScripts/"
+SCRIPTS_DIR = APP_DIR + "userscripts/"
 USERDATA_DIR = APP_DIR + "userdata/"
 
 
