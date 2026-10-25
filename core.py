@@ -1,4 +1,7 @@
 import os
+import json
+import time
+import traceback
 import threading
 import contextlib
 
@@ -17,9 +20,31 @@ from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.textfield import MDTextField
 
 from RockScissorsPaper import check_win
-from PasswordManager import generate_password
+from PasswordManager import generate_password, backend_info, METHODS
 
-SCRIPTS_DIR = "/storage/emulated/0/Folyan/FolyanApp/UserScripts/"
+APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
+SCRIPTS_DIR = APP_DIR + "UserScripts/"
+USERDATA_DIR = APP_DIR + "userdata/"
+LOG_FILE = APP_DIR + "folyan.log"
+
+
+def log(msg):
+    try:
+        os.makedirs(APP_DIR, exist_ok=True)
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except OSError:
+        pass
+
+
+def userdata_dir():
+    try:
+        os.makedirs(USERDATA_DIR, exist_ok=True)
+        if os.access(USERDATA_DIR, os.W_OK):
+            return USERDATA_DIR
+    except OSError:
+        pass
+    return MDApp.get_running_app().user_data_dir
 
 KV = """
 #:set BG (0.055, 0.086, 0.129, 1)
@@ -180,10 +205,12 @@ KV = """
                 spacing: "10dp"
 
 <PasswordScreen>:
+    on_pre_enter: root.load_state()
+
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
-        spacing: "15dp"
+        spacing: "10dp"
         md_bg_color: BG
 
         MDIconButton:
@@ -192,33 +219,141 @@ KV = """
             icon_color: (1, 1, 1, 1)
             on_release: root.go_to("menu")
 
-        MDTextField:
-            id: salt_field
-            hint_text: "Соль"
+        ScrollView:
+            do_scroll_x: False
 
-        MDTextField:
-            id: master_field
-            hint_text: "Мастер-пароль"
-            password: True
+            MDBoxLayout:
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: "10dp"
 
-        MDTextField:
-            id: site_field
-            hint_text: "Сайт"
+                MDLabel:
+                    text: "Галочка слева: сохранять это поле в файл"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (0.7, 0.7, 0.7, 1)
 
-        MenuButton:
-            caption: "Сгенерировать"
-            on_release: root.generate()
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
 
-        MDLabel:
-            id: result_label
-            text: "Результат:"
-            halign: "center"
-            theme_text_color: "Custom"
-            text_color: (1, 1, 1, 1)
+                    MDCheckbox:
+                        id: salt_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
 
-        MenuButton:
-            caption: "Копировать"
-            on_release: root.copy_result()
+                    MDTextField:
+                        id: salt_field
+                        MDTextFieldHintText:
+                            text: "Соль"
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: master_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.on_master_check(self.active)
+
+                    MDTextField:
+                        id: master_field
+                        password: True
+                        MDTextFieldHintText:
+                            text: "Мастер-пароль"
+
+                MDLabel:
+                    id: master_warn
+                    text: "Внимание: мастер-пароль сохранится в файле открытым текстом. Это небезопасно!"
+                    size_hint_y: None
+                    height: "0dp"
+                    opacity: 0
+                    theme_text_color: "Custom"
+                    text_color: (1, 0.4, 0.4, 1)
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: site_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: site_field
+                        MDTextFieldHintText:
+                            text: "Сайт"
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: iterations_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: iterations_field
+                        input_filter: "int"
+                        text: "3637142"
+                        MDTextFieldHintText:
+                            text: "Итерации"
+
+                MDLabel:
+                    id: method_label
+                    text: "Метод: обычный"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (1, 1, 1, 1)
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "48dp"
+                    spacing: "10dp"
+
+                    MenuButton:
+                        caption: "Обычный"
+                        on_release: root.set_method("standard")
+
+                    MenuButton:
+                        caption: "OpenSSL"
+                        on_release: root.set_method("openssl")
+
+                MenuButton:
+                    id: bench_btn
+                    caption: "Замер: обычный, затем OpenSSL"
+                    on_release: root.benchmark()
+
+                MenuButton:
+                    id: gen_btn
+                    caption: "Сгенерировать"
+                    on_release: root.generate()
+
+                MDLabel:
+                    id: result_label
+                    text: "Результат:"
+                    halign: "center"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (1, 1, 1, 1)
+
+                MenuButton:
+                    caption: "Копировать"
+                    on_release: root.copy_result()
 """
 
 
@@ -489,21 +624,163 @@ files_screen_code = FilesScreen = type(
 
 
 class PasswordScreen(BaseScreen):
+    FIELDS = ("salt", "master", "site", "iterations")
+    DEFAULT_ITERATIONS = "3637142"
+    METHOD_NAMES = {"standard": "обычный", "openssl": "OpenSSL"}
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.busy = False
+        self.loading = False
+        self.result = ""
+        self.method = "standard"
+
+    def state_path(self):
+        return os.path.join(userdata_dir(), "passwords.json")
+
+    def load_state(self):
+        self.loading = True
+        try:
+            with open(self.state_path(), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = {}
+        for name in self.FIELDS:
+            check = self.ids[f"{name}_check"]
+            field = self.ids[f"{name}_field"]
+            if name in data:
+                field.text = str(data[name])
+                check.active = True
+            else:
+                check.active = False
+        if not self.ids.iterations_field.text:
+            self.ids.iterations_field.text = self.DEFAULT_ITERATIONS
+        self.show_master_warning(self.ids.master_check.active)
+        self.loading = False
+        log("passwords screen: " + backend_info())
+
+    def save_state(self):
+        if self.loading:
+            return
+        data = {
+            name: self.ids[f"{name}_field"].text
+            for name in self.FIELDS
+            if self.ids[f"{name}_check"].active
+        }
+        try:
+            with open(self.state_path(), "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+        except OSError as e:
+            log(f"save_state error: {e}")
+
+    def show_master_warning(self, on):
+        self.ids.master_warn.opacity = 1 if on else 0
+        self.ids.master_warn.height = dp(64) if on else 0
+
+    def on_master_check(self, active):
+        self.show_master_warning(active)
+        self.save_state()
+
+    def set_method(self, method):
+        self.method = method
+        self.ids.method_label.text = "Метод: " + self.METHOD_NAMES[method]
+
+    def parse_iterations(self):
+        try:
+            value = int(self.ids.iterations_field.text)
+        except ValueError:
+            return 0
+        return value if value >= 1 else 0
+
+    def set_busy(self, busy):
+        self.busy = busy
+        self.ids.gen_btn.disabled = busy
+        self.ids.bench_btn.disabled = busy
+
     def generate(self):
+        if self.busy:
+            return
         salt = self.ids.salt_field.text
         master = self.ids.master_field.text
         site = self.ids.site_field.text
-        if salt and master and site:
-            res = generate_password(master, salt, site)
-            self.ids.result_label.text = f"Результат: {res}"
-        else:
+        if not (salt and master and site):
             self.ids.result_label.text = "Заполни все поля!"
+            return
+        iterations = self.parse_iterations()
+        if not iterations:
+            self.ids.result_label.text = "Итерации: целое число от 1"
+            return
+
+        self.save_state()
+        self.set_busy(True)
+        self.ids.result_label.text = "Считаю..."
+        threading.Thread(
+            target=self._worker,
+            args=(master, salt, site, iterations, self.method),
+            daemon=True,
+        ).start()
+
+    def _worker(self, master, salt, site, iterations, method):
+        start = time.perf_counter()
+        try:
+            res = generate_password(master, salt, site, iterations, method)
+        except Exception as e:
+            log(f"generate error method={method}: {e}\n{traceback.format_exc()}")
+            self._finish("", str(e))
+            return
+        elapsed = time.perf_counter() - start
+        log(f"generate method={method} iterations={iterations} time={elapsed:.2f}s")
+        self._finish(res, None, elapsed)
+
+    @mainthread
+    def _finish(self, res, error, elapsed=0.0):
+        self.set_busy(False)
+        if error:
+            self.result = ""
+            self.ids.result_label.text = f"Ошибка: {error}"
+        else:
+            self.result = res
+            self.ids.result_label.text = f"Результат: {res}\n({elapsed:.2f} с)"
+
+    def benchmark(self):
+        if self.busy:
+            return
+        iterations = self.parse_iterations()
+        if not iterations:
+            self.ids.result_label.text = "Итерации: целое число от 1"
+            return
+        self.set_busy(True)
+        self.ids.result_label.text = "Замер..."
+        threading.Thread(
+            target=self._bench_worker, args=(iterations,), daemon=True
+        ).start()
+
+    def _bench_worker(self, iterations):
+        lines = []
+        outputs = []
+        for method in METHODS:
+            start = time.perf_counter()
+            try:
+                outputs.append(generate_password("test", "salt", "site", iterations, method))
+                text = f"{time.perf_counter() - start:.2f} с"
+            except Exception as e:
+                log(f"bench error method={method}: {e}\n{traceback.format_exc()}")
+                text = f"ошибка ({e})"
+            lines.append(f"{self.METHOD_NAMES[method]}: {text}")
+        if len(outputs) == len(METHODS):
+            lines.append("результаты совпадают" if len(set(outputs)) == 1 else "РЕЗУЛЬТАТЫ РАЗНЫЕ")
+        summary = "\n".join(lines)
+        log(f"bench iterations={iterations}: " + " | ".join(lines))
+        self._bench_done(summary)
+
+    @mainthread
+    def _bench_done(self, summary):
+        self.set_busy(False)
+        self.ids.result_label.text = summary
 
     def copy_result(self):
-        text = self.ids.result_label.text
-        if "Результат: " in text:
-            res = text.split("Результат: ")[1]
-            Clipboard.copy(res)
+        if self.result:
+            Clipboard.copy(self.result)
 
 
 class FolyanApp(MDApp):
