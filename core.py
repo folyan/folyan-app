@@ -50,72 +50,116 @@ KV = """
         text: root.caption
 
 <MenuScreen>:
-    MDBoxLayout:
-        id: menu_layout
-        orientation: "vertical"
-        padding: "20dp"
-        spacing: "20dp"
-        md_bg_color: BG
-
-<CoinScreen>:
     md_bg_color: BG
 
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
-        spacing: "10dp"
+        spacing: "20dp"
 
-        MDBoxLayout:
-            size_hint_y: None
-            height: "48dp"
-
-            MDIconButton:
-                icon: "arrow-left"
-                theme_icon_color: "Custom"
-                icon_color: (1, 1, 1, 1)
-                pos_hint: {"center_y": 0.5}
-                on_release: root.go_to("menu")
-
+        # Монетка в главном меню
         FloatLayout:
+            size_hint_y: None
+            height: "160dp"
+
             MDCard:
                 id: coin_card
                 size_hint: None, None
                 size: "160dp", "160dp"
-                pos_hint: {"center_x": 0.5, "center_y": 0.55}
+                pos_hint: {"center_x": 0.5, "center_y": 0.5}
                 radius: [self.height / 2]
                 style: "outlined"
                 line_color: (0.28, 0.42, 0.56, 0.8)
                 line_width: 2
-                md_bg_color: (0.085, 0.13, 0.19, 1)
+                md_bg_color: (0.085, 0.13, 0Вот обновленный код. Монетка теперь встроена прямо в главное меню, а при нажатии на неё она анимированно подбрасывается, меняет цифры (0 / 1) и в.19, 1)
                 ripple_behavior: True
                 on_release: root.flip()
 
-                MDLabel:
-                    id: coin_label
-                    text: "0"
-                    halign: "center"
-                    valign: "middle"
-                    font_size: "68sp"
-                    bold: True
-                    theme_text_color: "Custom"
-                    text_color: (0.92, 0.96, 1, 1)
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: "8dp"
+                    spacing: "2dp"
+                    pos_hint: {"center_x": 0.5, "center_y":  конце показывает надпись «Выпало: 0» или «Выпало: 1» прямо на самой монетке:0.5}
 
-            MDLabel:
-                id: status_label
-                text: "Нажми на монетку"
-                halign: "center"
-                adaptive_height: True
-                pos_hint: {"center_x": 0.5, "center_y": 0.35}
-                font_size: "14sp"
-                theme_text_color: "Custom"
-                text_color: (0.55, 0.65, 0.75, 1)
+                    MDLabel:
+                        id: coin_label
+                        text: "0"
+                        halign: "center"
+                        valign: "middle"
+                        font_size: "48sp"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: (0.92, 0.96, 1, 1)
+
+                    MDLabel:
+                        id: status_
+
+```python
+import os
+import json
+import time
+import random
+import threading
+import contextlib
+
+from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager
+from kivy.core.window import Window
+from kivy.clock import Clock, mainthread
+from kivy.core.text import Label as CoreLabel
+from kivy.core.clipboard import Clipboard
+from kivy.uix.label import Label
+from kivy.animation import Animation
+from kivy.metrics import dp, sp
+from kivymd.app import MDApp
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.label
+                        text: "Нажми"
+                        halign: "center"
+                        valign: "middle"
+                        font_size: "12sp"
+                        theme_text_color: "Custom"
+                        text_colorboxlayout import MDBoxLayout
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.card import MDCard
+
+from passwordmanager import: (0.55, 0.65, 0.75, 1)
+
+        MDBoxLayout:
+            id: menu_layout
+            orientation: "vertical"
+            spacing: "15dp"
+            size generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
+
+APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
+SCRIPTS_DIR = APP_DIR + "userscripts/"
+USERDATA_DIR = APP_DIR + "userdata/"
+
+
+def userdata_dir():
+    try:
+        os.makedirs(USERDATA_DIR, exist_ok=True)
+        if os.access(USERDATA_DIR, os.W_hint_y: None
+            height: self.minimum_height
+            pos_hint: {"center_x": 0.5}
 
 <InterpreterScreen>:
     MDBoxLayout:
         orientation: "vertical"
         padding: ["8dp", "8dp", "8dp", "8dp"]
         spacing: "8dp"
-        md_bg_color: BG
+        _OK):
+            return USERDATA_DIR
+    except OSError:
+        pass
+    return MDApp.get_running_app().user_data_dir
+
+
+KV = """
+#:set BG (0.055, 0.086, 0.129, 1)
+
+<MenuButton@md_bg_color: BG
 
         MDIconButton:
             icon: "arrow-left"
@@ -132,12 +176,26 @@ KV = """
                 size_hint_y: None
                 height: self.minimum_height
                 spacing: "8dp"
-                padding: ["12dp", "8dp"]
+                padding: ["12dp", "8dp"]MDButton>:
+    caption: ""
+    style: "filled"
+    pos_hint: {"center_x": 0.5}
+
+    MDButtonText:
+        text: root.caption
+
+<MenuScreen>:
+    md_bg_color: BG
 
         MDBoxLayout:
             id: file_box
             size_hint_y: None
-            height: "0dp"
+            height
+
+    MDBoxLayout:
+        id: menu_layout
+        orientation: "vertical"
+        padding: ": "0dp"
             padding: ["8dp", 0]
 
             MDCard:
@@ -145,15 +203,27 @@ KV = """
                 style: "outlined"
                 radius: [16]
                 padding: "12dp"
-                size_hint_y: None
+20dp"
+        spacing: "15dp"
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: "140dp"
+            pos_hint: {"center_x": 0.5                size_hint_y: None
                 height: "0dp"
                 opacity: 0
-                md_bg_color: (0.094, 0.145, 0.200, 1)
+                md_bg_color: (0.094, 0.145, 0.2}
+
+            MDCard:
+                id: coin_card
+                size_hint: None, None
+                size: "1300, 1)
 
                 MDLabel:
                     id: file_name
                     text: ""
-                    halign: "center"
+                    halign: "0dp", "130dp"
+                pos_hint: {"center_x": 0.5center"
                     font_name: "font.ttf"
                     theme_text_color: "Custom"
                     text_color: (1, 1, 1, 1)
@@ -162,14 +232,177 @@ KV = """
             orientation: "horizontal"
             spacing: "8dp"
             size_hint_y: None
-            height: "56dp"
+, "center_y": 0.5}
+                radius: [self.height / 2]
+                style: "outlined"
+                line_color: (0.28, 0.42,            height: "56dp"
             padding: ["4dp", 0]
 
             MDIconButton:
                 icon: "paperclip"
                 theme_icon_color: "Custom"
-                icon_color: (0.165, 0.671, 0.933, 1)
+                icon 0.56, 0.8)
+                line_width: 2
+                md_bg_color: (0.085, 0.13, 0.19, 1)
+                ripple_behavior: True
+                on_release: root.flip_coin()
+
+                MDLabel_color: (0.165, 0.671, 0.933, 1)
                 on_release: root.go_to("files")
+
+            MDTextField:
+                :
+                    id: coin_label
+                    text: "Монетка"
+                    halign: "center"
+                    valign: "middle"
+                    font_size: "18sp"
+                    bold: True
+                    themeid: answer_field
+                hint_text: "Ответ или код"
+                font_name: "font.ttf"
+
+_text_color: "Custom"
+                    text_color: (0.92, 0.9            MDIconButton:
+                icon: "send"
+                theme_icon_color: "Custom"
+                icon_color: (0.165, 0.671, 0.96, 1, 1)
+
+        ScrollView:
+            do_scroll_x: False
+            MDBoxLayout:
+                id: buttons_box
+                orientation: "vertical"
+                size_hint_y: None33, 1)
+                on_release: root.answer_clicked()
+
+<FilesScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing:
+                height: self.minimum_height
+                spacing: "15dp"
+                padding: [0, "10dp "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon", 0, "10dp"]
+
+<InterpreterScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: ["8dp", "8dp", "8dp", "8dp"]
+        spacing: "8dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            : "arrow-left"
+            theme_icon_color: "Custom"
+            icon_color: (theme_icon_color: "Custom"
+            icon_color: (1, 1, 1,1, 1, 1, 1)
+            on_release: root.go_to("interpreter")
+
+        ScrollView:
+            MDBoxLayout:
+                id: files_box
+                orientation: "vertical" 1)
+            on_release: root.go_to("menu")
+
+        ScrollView:
+            id: scroll_view
+            do_scroll_x: False
+            MDBoxLayout:
+                id: chat_
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
+
+<PasswordScreen>:
+    on_pre_enter: root.load_state()
+
+    box
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "8dp"
+                padding: ["12dp", "8dp"]
+
+        MDBoxLayout:
+            id: file_MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon:box
+            size_hint_y: None
+            height: "0dp"
+            padding: ["8dp", 0]
+
+            MDCard:
+                id: file_card
+                style: "outlined"
+                radius: [ "arrow-left"
+            theme_icon_color: "Custom"
+            icon_color: (116]
+                padding: "12dp"
+                size_hint_y: None
+                height, 1, 1, 1)
+            on_release: root.go_to("menu")
+
+        ScrollView:
+            do_scroll_x: False
+
+            MDBoxLayout:
+                orientation: "vertical: "0dp"
+                opacity: 0
+                md_bg_color: (0.094, 0.145, 0.200, 1)
+
+                MDLabel:"
+                adaptive_height: True
+                spacing: "10dp"
+
+                MDLabel:
+                    text: "Галочка слева: сохранять это поле в файл"
+                    adaptive_height: True
+
+                    id: file_name
+                    text: ""
+                    halign: "center"
+                    font_name: "font.ttf"
+                    theme_text_color: "Custom"
+                    text_color:                    theme_text_color: "Custom"
+                    text_color: (0.7, 0. (1, 1, 1, 1)
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "8dp"
+            size_hint_y: None
+            height: "567, 0.7, 1)
+
+                MDBoxLayout:
+                    size_hint_y: Nonedp"
+            padding: ["4dp", 0]
+
+            MDIconButton:
+                icon:
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: salt_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+ "paperclip"
+                theme_icon_color: "Custom"
+                icon_color: (0.165, 0.671, 0.933, 1)
+                on                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+_release: root.go_to("files")
 
             MDTextField:
                 id: answer_field
@@ -179,72 +412,7 @@ KV = """
             MDIconButton:
                 icon: "send"
                 theme_icon_color: "Custom"
-                icon_color: (0.165, 0.671, 0.933, 1)
-                on_release: root.answer_clicked()
-
-<FilesScreen>:
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: "20dp"
-        spacing: "10dp"
-        md_bg_color: BG
-
-        MDIconButton:
-            icon: "arrow-left"
-            theme_icon_color: "Custom"
-            icon_color: (1, 1, 1, 1)
-            on_release: root.go_to("interpreter")
-
-        ScrollView:
-            MDBoxLayout:
-                id: files_box
-                orientation: "vertical"
-                size_hint_y: None
-                height: self.minimum_height
-                spacing: "10dp"
-
-<PasswordScreen>:
-    on_pre_enter: root.load_state()
-
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: "20dp"
-        spacing: "10dp"
-        md_bg_color: BG
-
-        MDIconButton:
-            icon: "arrow-left"
-            theme_icon_color: "Custom"
-            icon_color: (1, 1, 1, 1)
-            on_release: root.go_to("menu")
-
-        ScrollView:
-            do_scroll_x: False
-
-            MDBoxLayout:
-                orientation: "vertical"
-                adaptive_height: True
-                spacing: "10dp"
-
-                MDLabel:
-                    text: "Галочка слева: сохранять это поле в файл"
-                    adaptive_height: True
-                    theme_text_color: "Custom"
-                    text_color: (0.7, 0.7, 0.7, 1)
-
-                MDBoxLayout:
-                    size_hint_y: None
-                    height: "64dp"
-                    spacing: "8dp"
-
-                    MDCheckbox:
-                        id: salt_check
-                        size_hint: None, None
-                        size: "48dp", "48dp"
-                        pos_hint: {"center_y": 0.5}
-                        on_active: root.save_state()
-
-                    MDTextField:
+                icon_color:                    MDTextField:
                         id: salt_field
                         text: "FolyanApp"
                         MDTextFieldHintText:
@@ -252,7 +420,12 @@ KV = """
 
                 MDBoxLayout:
                     size_hint_y: None
-                    height: "64dp"
+                    height (0.165, 0.671, 0.933, 1)
+                on_release: root.answer_clicked()
+
+<FilesScreen>:
+    MDBoxLayout:
+        orientation: "vertical": "64dp"
                     spacing: "8dp"
 
                     MDCheckbox:
@@ -260,15 +433,35 @@ KV = """
                         size_hint: None, None
                         size: "48dp", "48dp"
                         pos_hint: {"center_y": 0.5}
-                        on_active: root.on_master_check(self.active)
+                        on_active: root
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            theme_icon.on_master_check(self.active)
 
                     MDTextField:
                         id: master_field
+_color: "Custom"
+            icon_color: (1, 1, 1, 1)
+            on_release: root.go_to("interpreter")
+
+        ScrollView:
+            MDBoxLayout:
                         password: True
                         MDTextFieldHintText:
                             text: "Мастер-пароль"
 
-                MDLabel:
+                id: files_box
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
+
+<PasswordScreen>:
+    on                MDLabel:
                     id: master_warn
                     text: "Внимание: мастер-пароль сохранится в файле открытым текстом. Это небезопасно!"
                     size_hint_y: None
@@ -278,9 +471,24 @@ KV = """
                     text_color: (1, 0.4, 0.4, 1)
 
                 MDBoxLayout:
-                    size_hint_y: None
+_pre_enter: root.load_state()
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            theme_icon_                    size_hint_y: None
                     height: "64dp"
-                    spacing: "8dp"
+                    spacing: "8dpcolor: "Custom"
+            icon_color: (1, 1, 1, 1)
+            on_release: root.go_to("menu")
+
+        ScrollView:
+            do_scroll_x"
 
                     MDCheckbox:
                         id: site_check
@@ -290,14 +498,172 @@ KV = """
                         on_active: root.save_state()
 
                     MDTextField:
-                        id: site_field
+                        id: False
+
+            MDBoxLayout:
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: "10dp"
+
+                MDLabel:
+                    text: "Галочка слева: сохранять: site_field
                         MDTextFieldHintText:
                             text: "Сайт"
+
+                MDBoxLayout это поле в файл"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (0.7, 0.7, 0.7, 1)
+
+:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: iterations_check
+                        size_hint: None, None                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: salt_check
+                        size_hint:
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: salt_field
+                        text: "FolyanApp"
+                        MDTextFieldHintText:
+                            text                        id: iterations_field
+                        input_filter: "int"
+                        text: "500000"
+                        MDTextFieldHintText:
+                            text: "Итерации"
+
+                MenuButton:: "Соль"
 
                 MDBoxLayout:
                     size_hint_y: None
                     height: "64dp"
                     spacing: "8dp"
+
+                    MDCheckbox:
+                        id: master_check
+                    id: gen_btn
+                    caption: "Сгенерировать"
+                    on_release: root
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+.generate()
+
+                MDLabel:
+                    id: result_label
+                    text: "Результат:"
+                    halign: "center"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (1, 1, 1, 1)
+
+                MenuButton:                        pos_hint: {"center_y": 0.5}
+                        on_active: root.on_master_check(self.active)
+
+                    MDTextField:
+                        id: master_field
+                        password: True
+                        MDTextFieldHintText:
+                            text: "Мастер-пароль"
+
+                MD
+                    caption: "Копировать"
+                    on_release: root.copy_result()
+"""
+
+
+Label:
+                    id: master_warn
+                    text: "Внимание: мастер-пароль сохранится в файле открытым текстом. Это небезопасно!"
+                    size_hint_y: None
+                    height: "class OutputPipe:
+    def __init__(self, callback):
+        self.callback = callback
+
+    def write(self, text):
+        if text.strip():
+            self.callback(text.strip(), "left")
+
+    def flush(self):
+0dp"
+                    opacity: 0
+                    theme_text_color: "Custom"
+                    text_        pass
+
+
+class BaseScreen(MDScreen):
+    def go_to(self, name):
+        self.manager.current = name
+
+
+class MenuScreen(BaseScreen):
+    flipping = False
+
+    def on_enter(selfcolor: (1, 0.4, 0.4, 1)
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp):
+        layout = self.ids.menu_layout
+        layout.clear_widgets()
+
+        apps = [
+            ("Интерпретатор", "interpreter"),
+            ("Менеджер паролей", "passwords"),
+            (""
+
+                    MDCheckbox:
+                        id: site_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": Выход", "exit"),
+        ]
+
+        for name, target in apps:
+            btn = MDButton(
+                MDButtonText(text=name),
+                style="filled",
+                pos_hint={"center_x": 00.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: site_field
+                        MDTextFieldHintText:
+                            text: "Сайт"
+
+                MDBoxLayout.5},
+            )
+            if target == "exit":
+                btn.bind(on_release=:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "lambda x: MDApp.get_running_app().stop())
+            else:
+                btn.bind(on_release=lambda x, t=target: self.go_to(t))
+            layout.add_widget(btn)
+
+    def flip(self):
+        if self.flipping:
+            return
+8dp"
 
                     MDCheckbox:
                         id: iterations_check
@@ -309,14 +675,22 @@ KV = """
                     MDTextField:
                         id: iterations_field
                         input_filter: "int"
-                        text: "500000"
+                        text: "5000        self.flipping = True
+        self.ids.status_label.text = "Бросок..."
+        coin = self.ids.coin_card
+        final_result = random.choice(["0", "00"
                         MDTextFieldHintText:
                             text: "Итерации"
 
-                MenuButton:
+                MenuButton:1"])
+        delays = [0.05, 0.05, 0.06
                     id: gen_btn
                     caption: "Сгенерировать"
-                    on_release: root.generate()
+                    on_release: root, 0.08, 0.11, 0.15]
+        total_flips = len(delays)
+
+        def do_step(step_idx):
+            d = delays[.generate()
 
                 MDLabel:
                     id: result_label
@@ -327,7 +701,14 @@ KV = """
                     text_color: (1, 1, 1, 1)
 
                 MenuButton:
-                    caption: "Копировать"
+                    caption:step_idx]
+            anim_in = Animation(width=dp(6), duration=d, t="in_quad")
+
+            def on_mid(anim, widget):
+                if step_idx == total_flips - 1:
+                    self.ids.coin_label.text = final_result
+                else:
+                    cur = self. "Копировать"
                     on_release: root.copy_result()
 """
 
@@ -340,79 +721,49 @@ class OutputPipe:
         if text.strip():
             self.callback(text.strip(), "left")
 
-    def flush(self):
+    ids.coin_label.text
+                    self.ids.coin_label.text = "1" if cur == "0" else "0"
+
+                anim_out = Animation(width=dp(160),def flush(self):
         pass
 
 
 class BaseScreen(MDScreen):
-    def go_to(self, name):
+    def go_to( duration=d, t="out_quad")
+
+                def on_end(anim2, widget2):
+self, name):
         self.manager.current = name
 
 
 class MenuScreen(BaseScreen):
+    flipping = False
+
     def on_enter(self):
-        layout = self.ids.menu_layout
+        layout = self.ids.buttons_box
         layout.clear_widgets()
 
         apps = [
-            ("Монетка (0 / 1)", "coin"),
             ("Интерпретатор", "interpreter"),
-            ("Менеджер паролей", "passwords"),
-            ("Выход", "exit"),
-        ]
-
-        apps.sort(key=lambda x: len(x[0]), reverse=True)
-
-        for name, target in apps:
-            btn = MDButton(
-                MDButtonText(text=name),
-                style="filled",
-                pos_hint={"center_x": 0.5},
-            )
-            if target == "exit":
-                btn.bind(on_release=lambda x: MDApp.get_running_app().stop())
-            else:
-                btn.bind(on_release=lambda x, t=target: self.go_to(t))
-            layout.add_widget(btn)
-
-
-class CoinScreen(BaseScreen):
-    flipping = False
-
-    def flip(self):
-        if self.flipping:
-            return
-        self.flipping = True
-        self.ids.status_label.text = "Бросок..."
-        coin = self.ids.coin_card
-        final_result = random.choice(["0", "1"])
-        delays = [0.05, 0.05, 0.06, 0.08, 0.11, 0.15]
-        total_flips = len(delays)
-
-        def do_step(step_idx):
-            d = delays[step_idx]
-            anim_in = Animation(width=dp(6), duration=d, t="in_quad")
-
-            def on_mid(anim, widget):
-                if step_idx == total_flips - 1:
-                    self.ids.coin_label.text = final_result
-                else:
-                    cur = self.ids.coin_label.text
-                    self.ids.coin_label.text = "1" if cur == "0" else "0"
-
-                anim_out = Animation(width=dp(160), duration=d, t="out_quad")
-
-                def on_end(anim2, widget2):
-                    if step_idx + 1 < total_flips:
+            ("                    if step_idx + 1 < total_flips:
                         do_step(step_idx + 1)
                     else:
                         self.flipping = False
                         self.ids.status_label.text = f"Выпало: {final_result}"
 
-                anim_out.bind(on_complete=on_end)
+                anim_out.bind(on_Менеджер паролей", "passwords"),
+            ("Выход", "exit"),
+        ]
+
+        apps.sort(key=lambda x: len(x[0]), reverse=True)
+
+        for name,complete=on_end)
                 anim_out.start(coin)
 
-            anim_in.bind(on_complete=on_mid)
+            anim_in.bind( target in apps:
+            btn = MDButton(
+                MDButtonText(text=name),
+                styleon_complete=on_mid)
             anim_in.start(coin)
 
         do_step(0)
@@ -420,7 +771,126 @@ class CoinScreen(BaseScreen):
     def on_leave(self):
         Animation.cancel_all(self.ids.coin_card)
         self.ids.coin_card.width = dp(160)
-        self.flipping = False
+        self="filled",
+                pos_hint={"center_x": 0.5},
+            )
+            if target == "exit":
+                btn.bind(on_release=lambda x: MDApp.get_running_app()..flipping = False
+
+
+class Bubble(MDBoxLayout):
+    def __init__(self, text, **kwargs):
+        super().__init__(**kwargs)
+        self.text_value = text
+        self.holdstop())
+            else:
+                btn.bind(on_release=lambda x, t=target: self.go_to(_event = None
+        self.held = False
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            touch.grab(self)
+            selft))
+            layout.add_widget(btn)
+
+    def flip_coin(self):
+        if self.flipping:
+            return
+        self.flipping = True
+        coin = self.ids.coin_card
+        label = self.ids.coin_label
+        label.font_size = "1.held = False
+            self.hold_event = Clock.schedule_once(self.on_hold, 0.5)
+            return True
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is self:
+            8sp"
+        label.text = "Бросок..."
+
+        final_result = random.choice(["0", "1"])
+        delays = [0.05, 0.05, 0.06, 0.08, 0.11, 0.15]
+        total_fltouch.ungrab(self)
+            if self.hold_event:
+                self.hold_event.cancel()
+                self.hold_event = None
+            return True
+        return super().on_touch_up(touch)
+
+    def on_hold(self):
+        self.held = True
+        self.ips = len(delays)
+
+        def do_step(step_idx):
+            d = delays[step_idx]
+            anim_in = Animation(width=dp(6), duration=d, t="in_quad")
+
+            def on_mid(anim, widget):
+                if step_idx == total_flips - 1:
+hold_event = None
+        Clipboard.copy(self.text_value)
+
+
+class InterpreterScreen(BaseScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.current_code                    label.font_size = "48sp"
+                    label.text = final_result
+                else = ""
+        self.current_name = ""
+        self.running = False
+        self.answer =:
+                    label.font_size = "18sp"
+                    cur = label.text
+                    label.text = "1" if cur == "0" else "0"
+
+                anim_out = Animation(width=dp(130), duration None
+        self.pending = None
+        self.env = None
+        self.event = threading.Event()
+
+    def on_touch_down(self, touch):
+        card = self.ids.file_=d, t="out_quad")
+
+                def on_end(anim2, widget2):
+                    if step_idx + 1 < total_flips:
+                        do_step(step_idx + 1)
+                    else:
+                        self.flipping = False
+
+                anim_out.bind(on_complete=on_end)
+                anim_out.start(coin)
+
+            anim_in.bind(on_completecard
+        if card.opacity and card.collide_point(*touch.pos):
+            self.clear_file()
+            return True
+        return super().on_touch_down(touch)
+
+    def load_file(self, path):
+        with open(path, encoding="utf-8") as f:
+            self.current_code = f.read()
+        self.current_name = os.path.basename(path)
+        self.set_card(=on_mid)
+            anim_in.start(coin)
+
+        do_step(0)
+
+self.current_name)
+
+    def clear_file(self):
+        self.current_code = ""
+        self.current_name = ""
+        self.env = None
+        self.set_card("")    def on_leave(self):
+        Animation.cancel_all(self.ids.coin_card)
+        self.ids.coin_card.width = dp(130)
+        self.flipping
+
+    def set_card(self, name):
+        shown = bool(name)
+        self.ids = False
 
 
 class Bubble(MDBoxLayout):
@@ -431,16 +901,29 @@ class Bubble(MDBoxLayout):
         self.held = False
 
     def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
+        if.file_name.text = name
+        self.ids.file_card.opacity = 1 if shown else 0
+        self.ids.file_card.height = "48dp" if shown else "0dp"
+        self.ids.file_box.height = "56dp" if shown else " self.collide_point(*touch.pos):
             touch.grab(self)
-            self.held = False
+            self.held =0dp"
+
+    def answer_clicked(self):
+        text = self.ids.answer_field. False
             self.hold_event = Clock.schedule_once(self.on_hold, 0.5)
             return True
         return super().on_touch_down(touch)
 
     def on_touch_up(self, touch):
         if touch.grab_current is self:
-            touch.ungrab(self)
+            touch.ungrab(self)text.strip()
+
+        if self.running:
+            if text:
+                self.ids.answer_field.text = ""
+                self.add_bubble(text, "right")
+                self.answer = text
+                self.
             if self.hold_event:
                 self.hold_event.cancel()
                 self.hold_event = None
@@ -450,7 +933,14 @@ class Bubble(MDBoxLayout):
     def on_hold(self):
         self.held = True
         self.hold_event = None
-        Clipboard.copy(self.text_value)
+        event.set()
+            return
+
+        if self.current_code:
+            code = self.current_code
+            fresh = True
+            self.ids.chat_box.clear_widgets()
+            self.Clipboard.copy(self.text_value)
 
 
 class InterpreterScreen(BaseScreen):
@@ -460,7 +950,17 @@ class InterpreterScreen(BaseScreen):
         self.current_name = ""
         self.running = False
         self.answer = None
-        self.pending = None
+        add_bubble(self.current_name, "right")
+            self.pending = text or None
+            if text:
+                self.add_bubble(text, "right")
+        elif text:
+            code = text
+            fresh = False
+            self.pending = None
+            self.add_bubble(text, "right")
+        else:
+            selfself.pending = None
         self.env = None
         self.event = threading.Event()
 
@@ -474,48 +974,7 @@ class InterpreterScreen(BaseScreen):
     def load_file(self, path):
         with open(path, encoding="utf-8") as f:
             self.current_code = f.read()
-        self.current_name = os.path.basename(path)
-        self.set_card(self.current_name)
-
-    def clear_file(self):
-        self.current_code = ""
-        self.current_name = ""
-        self.env = None
-        self.set_card("")
-
-    def set_card(self, name):
-        shown = bool(name)
-        self.ids.file_name.text = name
-        self.ids.file_card.opacity = 1 if shown else 0
-        self.ids.file_card.height = "48dp" if shown else "0dp"
-        self.ids.file_box.height = "56dp" if shown else "0dp"
-
-    def answer_clicked(self):
-        text = self.ids.answer_field.text.strip()
-
-        if self.running:
-            if text:
-                self.ids.answer_field.text = ""
-                self.add_bubble(text, "right")
-                self.answer = text
-                self.event.set()
-            return
-
-        if self.current_code:
-            code = self.current_code
-            fresh = True
-            self.ids.chat_box.clear_widgets()
-            self.add_bubble(self.current_name, "right")
-            self.pending = text or None
-            if text:
-                self.add_bubble(text, "right")
-        elif text:
-            code = text
-            fresh = False
-            self.pending = None
-            self.add_bubble(text, "right")
-        else:
-            self.add_bubble("Напиши код или выбери файл.", "left")
+        self.add_bubble("Напиши код или выбери файл.", "left")
             return
 
         self.ids.answer_field.text = ""
@@ -526,7 +985,18 @@ class InterpreterScreen(BaseScreen):
         if prompt:
             self.add_bubble(str(prompt), "left")
         if self.pending is not None:
-            answer, self.pending = self.pending, None
+.current_name = os.path.basename(path)
+        self.set_card(self.current_name)
+
+    def clear_file(self):
+        self.current_code = ""
+        self.current_name = ""
+        self.env = None
+        self.set_card("")
+
+    def set_card(self, name):
+        shown = bool(name)
+        self.ids.file_            answer, self.pending = self.pending, None
             return answer
         self.event.clear()
         self.event.wait()
@@ -536,7 +1006,10 @@ class InterpreterScreen(BaseScreen):
         pipe = OutputPipe(self.add_bubble)
         if fresh or self.env is None:
             self.env = {"__builtins__": __builtins__, "input": self.fake_input}
-        env = self.env
+name.text = name
+        self.ids.file_card.opacity = 1 if shown else 0
+        self.ids.file_card.height = "48dp" if shown else "0dp"
+        self.        env = self.env
         try:
             with contextlib.redirect_stdout(pipe):
                 exec(code, env)
@@ -545,18 +1018,50 @@ class InterpreterScreen(BaseScreen):
         self.running = False
 
     @mainthread
-    def add_bubble(self, text, side):
+    def add_ids.file_box.height = "56dp" if shown else "0dp"
+
+    def answerbubble(self, text, side):
         max_bubble_w = min(Window.width * 0.78, dp(480))
         pad_x = dp(24)
-        pad_y = dp(14)
+        pad_y = dp(_clicked(self):
+        text = self.ids.answer_field.text.strip()
+
+        if self.running:
+            if text:
+                self.ids.answer_field.text = ""
+                self.add_bubble(text, "right")
+                self.answer = text
+                self.event.set()
+            return14)
         max_text_w = max_bubble_w - pad_x
 
         font = "font.ttf" if os.path.exists("font.ttf") else "Roboto"
-        font_sz = sp(15)
+        font_
+
+        if self.current_code:
+            code = self.current_code
+            fresh = True
+            self.ids.chat_box.clear_widgets()
+            self.add_bubble(self.current_name, "right")
+            self.pending = text or None
+            if text:
+                self.add_bubble(text, "right")
+sz = sp(15)
 
         core = CoreLabel(text=text, font_size=font_sz, font_name=font)
         core.refresh()
-        tw, th = core.texture.size
+        tw, th = core.texture.        elif text:
+            code = text
+            fresh = False
+            self.pending = None
+            self.add_bubble(text, "right")
+        else:
+            self.add_bubble("Напиши код или выбери файл.", "left")
+            return
+
+        self.ids.answer_field.text = ""
+        self.running = True
+        threading.Thread(target=self.run_code, args=(code, fresh), daemon=True).size
 
         if tw > max_text_w:
             is_wrapped = True
@@ -569,31 +1074,58 @@ class InterpreterScreen(BaseScreen):
             core.refresh()
             tw, th = core.texture.size
             final_tw = max_text_w
-            final_th = th
+start()
+
+    def fake_input(self, prompt=""):
+        if prompt:
+            self.add_bubble(str(prompt), "left")
+        if self.pending is not None:
+            answer,            final_th = th
         else:
             is_wrapped = False
             final_tw = tw
             final_th = th
 
-        bubble_w = max(final_tw + pad_x, dp(52))
+        bubble_w = max(final_tw + pad_x, dp self.pending = self.pending, None
+            return answer
+        self.event.clear()
+        self.event.wait()
+        return self.answer
+
+    def run_code(self, code, fresh):(52))
         bubble_h = max(final_th + pad_y, dp(36))
 
         radii = (
-            [dp(16), dp(16), dp(3), dp(16)]
+            [dp(16), dp(16), dp(3),
+        pipe = OutputPipe(self.add_bubble)
+        if fresh or self.env is None: dp(16)]
             if side == "right"
-            else [dp(16), dp(16), dp(16), dp(3)]
+            else [dp(16), dp(
+            self.env = {"__builtins__": __builtins__, "input": self.fake_input}16), dp(16), dp(3)]
         )
         color = (
-            (0.169, 0.322, 0.471, 1)
+            (0
+        env = self.env
+        try:
+            with contextlib.redirect_stdout(pipe):
+                exec(code, env)
+        except (Exception, SystemExit) as e:
+            self.add_bubble(f"Ошибка: {e}", "left")
+        self.running = False
+
+    @main.169, 0.322, 0.471, 1)
             if side == "right"
             else (0.137, 0.161, 0.196, 1)
         )
 
         bubble = Bubble(
             text,
-            size_hint=(None, None),
+            thread
+    def add_bubble(self, text, side):
+        max_bubble_w = min(size_hint=(None, None),
             size=(bubble_w, bubble_h),
-            padding=[dp(12), dp(7), dp(12), dp(7)],
+            padding=[dp(12),Window.width * 0.78, dp(480))
+        pad_x = dp( dp(7), dp(12), dp(7)],
             md_bg_color=color,
             radius=radii,
             pos_hint={"right": 1} if side == "right" else {"x": 0},
@@ -604,9 +1136,24 @@ class InterpreterScreen(BaseScreen):
             font_name=font,
             font_size=font_sz,
             color=(1, 1, 1, 1),
-            size_hint=(None, None),
+            size24)
+        pad_y = dp(14)
+        max_text_w = max_bubble_w - pad_x
+
+        font = "font.ttf" if os.path.exists("font.ttf") else "Roboto"
+        font_sz = sp(15)
+
+        core = CoreLabel(text=text, font_size=font_sz, font_name=font)
+        core.refresh()
+        tw_hint=(None, None),
             size=(final_tw, final_th),
-            text_size=(max_text_w, None) if is_wrapped else (None, None),
+            text_size, th = core.texture.size
+
+        if tw > max_text_w:
+            is_wrapped = True
+            core = CoreLabel(
+                text=text,
+                font_size=font_sz=(max_text_w, None) if is_wrapped else (None, None),
             halign="left",
             valign="middle",
         )
@@ -614,29 +1161,56 @@ class InterpreterScreen(BaseScreen):
         bubble.add_widget(label)
         self.ids.chat_box.add_widget(bubble)
         Clock.schedule_once(
-            lambda dt: setattr(self.ids.scroll_view, "scroll_y", 0), 0.05
+            lambda dt: setattr(self.ids.scroll_view, "scroll_y", 0), 0.,
+                font_name=font,
+                text_size=(max_text_w, None),
+            )
+            core.refresh()
+            tw, th = core.texture.size
+            final_tw05
         )
 
 
 files_screen_code = FilesScreen = type(
     "FilesScreen",
-    (BaseScreen,),
+ = max_text_w
+            final_th = th
+        else:
+            is_wrapped = False
+            final_tw = tw
+            final_th = th
+
+        bubble_w = max(final_    (BaseScreen,),
     {
         "on_enter": lambda self: [
             self.ids.files_box.clear_widgets(),
-            os.makedirs(SCRIPTS_DIR, exist_ok=True),
+            os.makedirs(SCRIPTS_DIR, exist_ok=tw + pad_x, dp(52))
+        bubble_h = max(final_th + pad_y, dp(36))
+
+        radii = (
+            [dp(16), dp(16), dp(3), dp(16)]
+            if side == "right"
+            else [True),
             [
                 self.ids.files_box.add_widget(
                     MDButton(
                         MDButtonText(text=name),
-                        on_release=lambda btn, p=os.path.join(SCRIPTS_DIR, name): [
+                        on_release=lambda btn, p=os.pathdp(16), dp(16), dp(16), dp(3)]
+        )
+        color = (
+            (0.169, 0.322, 0.47.join(SCRIPTS_DIR, name): [
                             self.manager.get_screen("interpreter").load_file(p),
                             setattr(self.manager, "current", "interpreter"),
                         ],
-                    )
+1, 1)
+            if side == "right"
+            else (0.137,                     )
                 )
                 for name in sorted(os.listdir(SCRIPTS_DIR))
-                if name.endswith(".py")
+                if0.161, 0.196, 1)
+        )
+
+        bubble = Bubble name.endswith(".py")
             ],
         ]
     },
@@ -653,10 +1227,126 @@ class PasswordScreen(BaseScreen):
         self.result = ""
 
     def state_path(self):
-        return os.path.join(userdata_dir(), "passwords.json")
+        return os.path.join(userdata(
+            text,
+            size_hint=(None, None),
+            size=(bubble_w, bubble_h),
+            padding=[dp(12), dp(7), dp(12), dp(7)],
+            md_bg_color=color,
+            radius=radii,
+            pos_hint={"right": 1} if side == "right" else {"x": 0},
+        )
+
+        label = Label(
+            _dir(), "passwords.json")
 
     def load_state(self):
         self.loading = True
+        try:
+            with open(self.state_path(), encoding="utf-8") as ftext=text,
+            font_name=font,
+            font_size=font_sz,
+            :
+                data = json.load(f)
+        except (OSError, ValueError):
+            data =color=(1, 1, 1, 1),
+            size_hint=(None, None),
+            size=(final_tw, final_th),
+            text_size=(max_text_w, None) if is_wrapped {}
+        for name in self.FIELDS:
+            check = self.ids[f"{name}_check"]
+            field = self.ids[f"{name}_field"]
+            if name in data:
+                field else (None, None),
+            halign="left",
+            valign="middle",
+        )
+
+        bubble.add_widget(label)
+        self.ids.chat_box.add_widget(bubble.text = str(data[name])
+                check.active = True
+            else:
+                check.)
+        Clock.schedule_once(
+            lambda dt: setattr(self.ids.scroll_view, "scroll_y", 0), 0.05
+        )
+
+
+files_screen_code = FilesScreen = type(
+    "FilesScreen",
+    (BaseScreen,),
+    {
+        "on_enter": lambda self: [
+            self.ids.files_box.clear_widgets(),
+            os.makedirs(SCRIPTS_DIR, exist_active = False
+        if not self.ids.salt_field.text:
+            self.ids.salt_field.text = DEFAULT_SALT
+        if not self.ids.iterations_field.text:
+            self.ids.iterations_field.text = str(DEFAULT_ITERATIONS)
+        self.show_master_warning(self.ok=True),
+            [
+                self.ids.files_box.add_widget(
+                    MDids.master_check.active)
+        self.loading = False
+
+    def save_state(self):Button(
+                        MDButtonText(text=name),
+                        on_release=lambda btn, p=os
+        if self.loading:
+            return
+        data = {
+            name: self.ids[f"{name}_field"].text
+            for name in self.FIELDS
+            if self.ids[f"{name}_check"].active.path.join(SCRIPTS_DIR, name): [
+                            self.manager.get_screen("interpreter").load_file(p),
+                            setattr(self.manager, "current", "interpreter"),
+                        ],
+                    )
+        }
+        try:
+            with open(self.state_path(), "w", encoding="utf-8") as
+                )
+                for name in sorted(os.listdir(SCRIPTS_DIR))
+                if name.endswith(".py")
+            ],
+        ]
+    },
+)
+
+
+class PasswordScreen(BaseScreen):
+ f:
+                json.dump(data, f, ensure_ascii=False)
+        except OSError:
+            pass
+
+    def show_master_warning(self, on):
+        self.ids.master_warn    FIELDS = ("salt", "master", "site", "iterations")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.busy = False
+        self.loading = False
+        self.result = ""
+
+    def state_path(self):
+        return os.path..opacity = 1 if on else 0
+        self.ids.master_warn.height = dp(64) if on else 0
+
+    def on_master_check(self, active):
+        self.show_master_warning(active)
+        self.save_state()
+
+    def generate(self, *args):
+        if self.busyjoin(userdata_dir(), "passwords.json")
+
+    def load_state(self):
+        self:
+            return
+        salt = self.ids.salt_field.text
+        master = self.ids.master_field.text
+        site = self.ids.site_field.text
+        if not (.loading = True
         try:
             with open(self.state_path(), encoding="utf-8") as f:
                 data = json.load(f)
@@ -665,16 +1355,40 @@ class PasswordScreen(BaseScreen):
         for name in self.FIELDS:
             check = self.ids[f"{name}_check"]
             field = self.ids[f"{name}_field"]
-            if name in data:
+            if name in data:salt and master and site):
+            self.ids.result_label.text = "Заполни все поля!"
+            return
+        try:
+            iterations = int(self.ids.iterations_field.text)
+        except ValueError:
+            iterations = 0
+        if iterations < 1:
+            self.ids.result_label.text = "Итера
                 field.text = str(data[name])
                 check.active = True
             else:
                 check.active = False
         if not self.ids.salt_field.text:
             self.ids.salt_field.text = DEFAULT_SALT
-        if not self.ids.iterations_field.text:
+        if not self.ids.iterations_field.textции: целое число от 1"
+            return
+
+        self.save_state()
+        self.busy = True
+        self.ids.gen_btn.disabled = True
+        self.ids.result_label.text = "Считаю..."
+        threading.Thread(
+            target=self._worker,
+            :
             self.ids.iterations_field.text = str(DEFAULT_ITERATIONS)
-        self.show_master_warning(self.ids.master_check.active)
+        self.args=(master, salt, site, iterations),
+            daemon=True,
+        ).start()
+
+    def _worker(self, master, salt, site, iterations):
+        start = time.perf_counter()
+        try:
+            res = generateshow_master_warning(self.ids.master_check.active)
         self.loading = False
 
     def save_state(self):
@@ -686,7 +1400,20 @@ class PasswordScreen(BaseScreen):
             if self.ids[f"{name}_check"].active
         }
         try:
-            with open(self.state_path(), "w", encoding="utf-8") as f:
+            with open(self.state_path(), "w", encoding_password(master, salt, site, iterations)
+        except Exception as e:
+            self._finish("", str(e))
+            return
+        elapsed = time.perf_counter() - start
+        self._finish(res, None, elapsed)
+
+    @mainthread
+    def _finish(self, res, error, elapsed=0.0):
+        self.busy = False
+        self.ids.gen_btn.disabled = False
+        if error:
+            self.result = ""
+            self.ids.result_label.text = f="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False)
         except OSError:
             pass
@@ -700,10 +1427,24 @@ class PasswordScreen(BaseScreen):
         self.save_state()
 
     def generate(self):
-        if self.busy:
+        if"Ошибка: {error}"
+        else:
+            self.result = res
+            self.ids.result_label.text = f"Результат: {res}\n({elapsed:.2f} с)"
+
+    def copy_result(self, *args):
+        if self.result:
+            Clipboard.copy(self.result)
+
+
+class FolyanApp(MDApp):
+    def build(self):
+        self.theme_cls.theme_style = self.busy:
             return
         salt = self.ids.salt_field.text
-        master = self.ids.master_field.text
+        master = "Dark"
+        Window.softinput_mode = "below_target"
+        Builder.load_string self.ids.master_field.text
         site = self.ids.site_field.text
         if not (salt and master and site):
             self.ids.result_label.text = "Заполни все поля!"
@@ -719,7 +1460,18 @@ class PasswordScreen(BaseScreen):
         self.save_state()
         self.busy = True
         self.ids.gen_btn.disabled = True
-        self.ids.result_label.text = "Считаю..."
+(KV)
+        sm = ScreenManager()
+        sm.add_widget(MenuScreen(name="menu"))
+        sm.add_widget(InterpreterScreen(name="interpreter"))
+        sm.add_widget(FilesScreen(name="files"))
+        sm.add_widget(PasswordScreen(name="passwords"))
+        return sm
+
+
+if __name__ == "__main__":
+    FolyanApp().run()
+```        self.ids.result_label.text = "Считаю..."
         threading.Thread(
             target=self._worker,
             args=(master, salt, site, iterations),
@@ -759,7 +1511,6 @@ class FolyanApp(MDApp):
         Builder.load_string(KV)
         sm = ScreenManager()
         sm.add_widget(MenuScreen(name="menu"))
-        sm.add_widget(CoinScreen(name="coin"))
         sm.add_widget(InterpreterScreen(name="interpreter"))
         sm.add_widget(FilesScreen(name="files"))
         sm.add_widget(PasswordScreen(name="passwords"))
