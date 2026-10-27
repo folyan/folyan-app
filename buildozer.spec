@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,kv,atlas,ttf,otf,json,txt,glsl,md,po,pot
 source.exclude_dirs = .git, .github, bin, venv, __pycache__
 version = 0.6.1
 
-requirements = python3,kivy,materialyoucolor==3.0.3,pillow,exceptiongroup,asyncgui,asynckivy,filetype,materialshapes,pycairo,pyjnius,yt-dlp,certifi,websockets
+requirements = python3,kivy,materialyoucolor==3.0.3,pillow,exceptiongroup,asyncgui,asynckivy,filetype,materialshapes==0.3,pycairo,pyjnius,yt-dlp,certifi,websockets
 android.permissions = INTERNET, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, MANAGE_EXTERNAL_STORAGE
 android.add_libs_arm64_v8a = libs/arm64-v8a/*.so
 
