@@ -22,10 +22,22 @@ from kivymd.uix.textfield import MDTextField
 from kivymd.uix.card import MDCard
 
 from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
+from nativebins import (
+    Stego,
+    native_bin,
+    tools_dir,
+    yt_args,
+    run_streaming,
+    download_python,
+)
 
 APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
 SCRIPTS_DIR = APP_DIR + "userscripts/"
 USERDATA_DIR = APP_DIR + "userdata/"
+DEFAULT_DOWNLOAD_DIR = "/storage/emulated/0/Download"
+
+HEIGHTS = [720, 1080]
+CODECS = [("vp", "VP9"), ("avc1", "H.264"), ("av01", "AV1")]
 
 
 def userdata_dir():
@@ -98,7 +110,7 @@ KV = """
         ScrollView:
             do_scroll_x: False
             size_hint_y: None
-            height: "180dp"
+            height: "260dp"
             MDBoxLayout:
                 id: buttons_box
                 orientation: "vertical"
@@ -326,6 +338,135 @@ KV = """
                 MenuButton:
                     caption: "Копировать"
                     on_release: root.copy_result()
+
+<StegoScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            theme_icon_color: "Custom"
+            icon_color: (1, 1, 1, 1)
+            on_release: root.go_to("menu")
+
+        ScrollView:
+            do_scroll_x: False
+
+            MDBoxLayout:
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: "10dp"
+
+                MDTextField:
+                    id: cover_field
+                    MDTextFieldHintText:
+                        text: "Маскировка / шифртекст"
+
+                MDTextField:
+                    id: secret_field
+                    MDTextFieldHintText:
+                        text: "Внутри"
+
+                MenuButton:
+                    id: enc_btn
+                    caption: "Зашифровать"
+                    on_release: root.start("enc")
+
+                MenuButton:
+                    id: dec_btn
+                    caption: "Расшифровать"
+                    on_release: root.start("dec")
+
+                MDLabel:
+                    id: stego_result
+                    text: ""
+                    halign: "center"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (1, 1, 1, 1)
+
+                MenuButton:
+                    caption: "Копировать"
+                    on_release: root.copy_result()
+
+<DownloaderScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            theme_icon_color: "Custom"
+            icon_color: (1, 1, 1, 1)
+            on_release: root.go_to("menu")
+
+        ScrollView:
+            do_scroll_x: False
+
+            MDBoxLayout:
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: "10dp"
+
+                MDTextField:
+                    id: url_field
+                    MDTextFieldHintText:
+                        text: "Ссылка"
+
+                MDTextField:
+                    id: path_field
+                    text: "/storage/emulated/0/Download"
+                    MDTextFieldHintText:
+                        text: "Папка"
+
+                MenuButton:
+                    id: height_btn
+                    caption: "Качество: 720p"
+                    on_release: root.cycle("height")
+
+                MenuButton:
+                    id: codec_btn
+                    caption: "Кодек: VP9"
+                    on_release: root.cycle("codec")
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "48dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: ai_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDLabel:
+                        text: "Разрешить -sr форматы (-ai)"
+                        valign: "middle"
+                        theme_text_color: "Custom"
+                        text_color: (0.7, 0.7, 0.7, 1)
+
+                MenuButton:
+                    id: dl_btn
+                    caption: "Скачать"
+                    on_release: root.start()
+
+                MenuButton:
+                    caption: "Стоп"
+                    on_release: root.stop()
+
+                MDLabel:
+                    id: status_label
+                    text: ""
+                    halign: "center"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (1, 1, 1, 1)
 """
 
 
@@ -356,6 +497,8 @@ class MenuScreen(BaseScreen):
         apps = [
             ("Интерпретатор", "interpreter"),
             ("Менеджер паролей", "passwords"),
+            ("Стенография", "stego"),
+            ("Качалка", "downloader"),
             ("Выход", "exit"),
         ]
 
@@ -751,6 +894,161 @@ class PasswordScreen(BaseScreen):
             Clipboard.copy(self.result)
 
 
+class StegoScreen(BaseScreen):
+    """Стенография: прячет текст в невидимых символах за маскировкой (burmaldainator)."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.busy = False
+        self.result = ""
+
+    def start(self, mode):
+        if self.busy:
+            return
+        path = native_bin("burmaldainator")
+        if not path:
+            self.ids.stego_result.text = "Не найден libburmaldainator.so"
+            return
+        cover = self.ids.cover_field.text
+        secret = self.ids.secret_field.text
+        if mode == "enc" and not secret.strip():
+            self.ids.stego_result.text = "Впиши, что прятать, в поле «Внутри»"
+            return
+        if mode == "dec" and not cover.strip():
+            self.ids.stego_result.text = "Вставь шифртекст в первое поле"
+            return
+
+        self.busy = True
+        self.ids.enc_btn.disabled = True
+        self.ids.dec_btn.disabled = True
+        self.ids.stego_result.text = "Считаю..."
+        threading.Thread(
+            target=self._worker, args=(mode, path, cover, secret), daemon=True
+        ).start()
+
+    def _worker(self, mode, path, cover, secret):
+        try:
+            with Stego(path) as s:
+                if mode == "enc":
+                    res = s.encrypt(cover, secret)
+                    self._done(res, f"Готово ({len(res)} симв.), скопировано", True)
+                else:
+                    res = s.decrypt(cover)
+                    self._done(res, f"Внутри: {res}", False)
+        except Exception as e:
+            self._done("", f"Ошибка: {e}", False)
+
+    @mainthread
+    def _done(self, res, text, copy):
+        self.busy = False
+        self.ids.enc_btn.disabled = False
+        self.ids.dec_btn.disabled = False
+        self.ids.stego_result.text = text
+        if res:
+            self.result = res
+            if copy:
+                Clipboard.copy(res)
+
+    def copy_result(self):
+        if self.result:
+            Clipboard.copy(self.result)
+
+
+class DownloaderScreen(BaseScreen):
+    """Качалка: запускает бинарник yt (он вызывает yt-dlp и ffmpeg)."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.busy = False
+        self.stop_flag = False
+        self.proc = None
+        self.height_idx = 0
+        self.codec_idx = 0
+
+    def cycle(self, what):
+        if what == "height":
+            self.height_idx = (self.height_idx + 1) % len(HEIGHTS)
+            self.ids.height_btn.caption = f"Качество: {HEIGHTS[self.height_idx]}p"
+        else:
+            self.codec_idx = (self.codec_idx + 1) % len(CODECS)
+            self.ids.codec_btn.caption = f"Кодек: {CODECS[self.codec_idx][1]}"
+
+    def start(self):
+        if self.busy:
+            return
+        url = self.ids.url_field.text.strip()
+        if not url:
+            self.status("Вставь ссылку")
+            return
+        path = self.ids.path_field.text.strip() or DEFAULT_DOWNLOAD_DIR
+        self.busy = True
+        self.stop_flag = False
+        self.ids.dl_btn.disabled = True
+        self.status("Запускаю...")
+        threading.Thread(
+            target=self._worker,
+            args=(
+                url,
+                path,
+                HEIGHTS[self.height_idx],
+                CODECS[self.codec_idx][0],
+                self.ids.ai_check.active,
+                MDApp.get_running_app().user_data_dir,
+            ),
+            daemon=True,
+        ).start()
+
+    def stop(self):
+        self.stop_flag = True
+        if self.proc is not None and self.proc.poll() is None:
+            self.proc.terminate()
+
+    def _set_proc(self, proc):
+        self.proc = proc
+
+    def _worker(self, url, path, height, codec, ai, base):
+        try:
+            os.makedirs(path, exist_ok=True)
+            tools = tools_dir(base)
+            if not os.path.exists(os.path.join(tools, "ffmpeg")):
+                raise RuntimeError("не найден libffmpeg.so")
+
+            has_bins = all(
+                os.path.exists(os.path.join(tools, name)) for name in ("yt", "yt-dlp")
+            )
+            if has_bins:
+                env = dict(os.environ)
+                env["PATH"] = tools + os.pathsep + env.get("PATH", "")
+                cmd = [os.path.join(tools, "yt")] + yt_args(height, codec, ai, path, url)
+                code, last = run_streaming(cmd, env, self.status, self._set_proc)
+                if self.stop_flag:
+                    raise InterruptedError
+                if code != 0:
+                    raise RuntimeError(f"yt вернул код {code}: {last}")
+                out = last
+            else:
+                self.status("Нет бинарника yt-dlp, качаю через Python-модуль...")
+                out = download_python(
+                    url, height, codec, ai, path, tools,
+                    self.status, lambda: self.stop_flag,
+                )
+            self.status(f"Готово: {out}")
+        except Exception as e:
+            self.status("Остановлено" if self.stop_flag else f"Ошибка: {e}")
+        finally:
+            self.proc = None
+            self._unlock()
+
+    @mainthread
+    def status(self, text):
+        self.ids.status_label.text = text
+
+    @mainthread
+    def _unlock(self):
+        self.busy = False
+        self.ids.dl_btn.disabled = False
+
+
 class FolyanApp(MDApp):
     def build(self):
         self.theme_cls.theme_style = "Dark"
@@ -761,8 +1059,6 @@ class FolyanApp(MDApp):
         sm.add_widget(InterpreterScreen(name="interpreter"))
         sm.add_widget(FilesScreen(name="files"))
         sm.add_widget(PasswordScreen(name="passwords"))
+        sm.add_widget(StegoScreen(name="stego"))
+        sm.add_widget(DownloaderScreen(name="downloader"))
         return sm
-
-
-if __name__ == "__main__":
-    FolyanApp().run()
