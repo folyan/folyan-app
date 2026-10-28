@@ -30,6 +30,21 @@ def native_bin(lib, cmd=None):
     return shutil.which(cmd or lib)
 
 
+def prepare_ffmpeg(cache_dir):
+    real_path = native_bin("ffmpeg", "ffmpeg")
+    if not real_path:
+        return None
+    if os.path.basename(real_path) == "ffmpeg":
+        return real_path
+    bin_dir = os.path.join(cache_dir, "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    symlink_path = os.path.join(bin_dir, "ffmpeg")
+    if os.path.lexists(symlink_path):
+        os.remove(symlink_path)
+    os.symlink(real_path, symlink_path)
+    return symlink_path
+
+
 def stego_max_secret(cover):
     return (STEGO_LINE_MAX - len(cover.encode())) // STEGO_BYTES_PER_BYTE
 
@@ -139,7 +154,8 @@ def download_python(url, height, codec, ai, path, ffmpeg_bin, on_status, cancell
         if d.get("status") == "downloading":
             total = d.get("total_bytes") or d.get("total_bytes_estimate")
             done = d.get("downloaded_bytes") or 0
-            on_status(f"Качаю: {done * 100 / total:.0f}%" if total else "Качаю...")
+            pct = f"{done * 100 / total:.0f}%" if total else "..."
+            on_status(f"Качаю: {pct}")
         elif d.get("status") == "finished":
             on_status("Склеиваю...")
 

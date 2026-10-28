@@ -25,6 +25,7 @@ from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 from nativebins import (
     Stego,
     native_bin,
+    prepare_ffmpeg,
     download_python,
 )
 
@@ -897,6 +898,9 @@ class StegoScreen(BaseScreen):
         if self.busy:
             return
         path = native_bin("burmaldainator")
+        if not path:
+            self.ids.stego_result.text = "Не найден libburmaldainator.so"
+            return
         cover = self.ids.cover_field.text
         secret = self.ids.secret_field.text
         if mode == "enc" and not secret.strip():
@@ -988,7 +992,9 @@ class DownloaderScreen(BaseScreen):
     def _worker(self, url, path, height, codec, ai):
         try:
             os.makedirs(path, exist_ok=True)
-            ffmpeg_path = native_bin("ffmpeg", "ffmpeg")
+            ffmpeg_path = prepare_ffmpeg(MDApp.get_running_app().user_data_dir)
+            if not ffmpeg_path:
+                raise RuntimeError("не найден libffmpeg.so")
 
             self.status("Качаю...")
             out = download_python(
