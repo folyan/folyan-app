@@ -1,14 +1,14 @@
 import os
-import re
+import certifi
 import select
 import shutil
 import subprocess
 import time
 
+os.environ["SSL_CERT_FILE"] = certifi.where()
+
 STEGO_LINE_MAX = 2047
 STEGO_BYTES_PER_BYTE = 24
-
-LINKS = (("yt", "yt"), ("yt-dlp", "ytdlp"), ("ffmpeg", "ffmpeg"))
 
 
 def native_dir():
@@ -28,19 +28,6 @@ def native_bin(lib, cmd=None):
         if os.path.isfile(path):
             return path
     return shutil.which(cmd or lib)
-
-
-def tools_dir(base):
-    folder = os.path.join(base, "bin")
-    os.makedirs(folder, exist_ok=True)
-    for cmd, lib in LINKS:
-        link = os.path.join(folder, cmd)
-        if os.path.lexists(link):
-            os.remove(link)
-        target = native_bin(lib, cmd)
-        if target:
-            os.symlink(target, link)
-    return folder
 
 
 def stego_max_secret(cover):
@@ -127,18 +114,6 @@ class Stego:
                 except Exception:
                     pass
 
-def yt_args(height, codec, ai, path, url):
-    args = []
-    if height == 1080:
-        args.append("-1080p")
-    if codec == "avc1":
-        args.append("-h264")
-    elif codec == "av01":
-        args.append("-av1")
-    if ai:
-        args.append("-ai")
-    return args + ["-P", path, url]
-
 
 def yt_format(height, codec, ai):
     sr = "" if ai else "[format_id!*=-sr]"
@@ -148,39 +123,13 @@ def yt_format(height, codec, ai):
     )
 
 
-def run_streaming(cmd, env, on_line, on_start):
-    proc = subprocess.Popen(
-        cmd,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        env=env,
-        bufsize=0,
-    )
-    on_start(proc)
-    last = ""
-    tail = b""
-    while True:
-        chunk = proc.stdout.read(4096)
-        if not chunk:
-            break
-        parts = re.split(rb"[\r\n]+", tail + chunk)
-        tail = parts.pop()
-        for part in parts:
-            line = part.decode("utf-8", "replace").strip()
-            if line:
-                last = line
-                on_line(line)
-    line = tail.decode("utf-8", "replace").strip()
-    if line:
-        last = line
-        on_line(line)
-    return proc.wait(), last
+class SilentLogger:
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): pass
 
 
-def download_python(url, height, codec, ai, path, tools, on_status, cancelled):
-    import certifi
-    os.environ["SSL_CERT_FILE"] = certifi.where()
+def download_python(url, height, codec, ai, path, ffmpeg_bin, on_status, cancelled):
     import yt_dlp
     from yt_dlp.utils import DownloadCancelled
 
@@ -199,8 +148,9 @@ def download_python(url, height, codec, ai, path, tools, on_status, cancelled):
         "paths": {"home": path},
         "outtmpl": "%(title)s.%(ext)s",
         "merge_output_format": "mkv",
-        "ffmpeg_location": tools,
+        "ffmpeg_location": ffmpeg_bin,
         "progress_hooks": [hook],
+        "logger": SilentLogger(),
         "quiet": True,
         "noprogress": True,
         "no_warnings": True,

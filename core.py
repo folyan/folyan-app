@@ -25,9 +25,6 @@ from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 from nativebins import (
     Stego,
     native_bin,
-    tools_dir,
-    yt_args,
-    run_streaming,
     download_python,
 )
 
@@ -69,11 +66,9 @@ KV = """
         padding: "20dp"
         spacing: "10dp"
 
-        # Верхняя пустая зона (выталкивает монетку в самый центр)
         Widget:
             size_hint_y: 1
 
-        # Монета строго по центру экрана
         FloatLayout:
             size_hint_y: None
             height: "150dp"
@@ -102,11 +97,9 @@ KV = """
                     theme_text_color: "Custom"
                     text_color: (0.92, 0.96, 1, 1)
 
-        # Нижняя пустая зона одинакового размера с верхней
         Widget:
             size_hint_y: 1
 
-        # Кнопки в самом низу
         ScrollView:
             do_scroll_x: False
             size_hint_y: None
@@ -587,7 +580,7 @@ class Bubble(MDBoxLayout):
                 self.hold_event.cancel()
                 self.hold_event = None
             return True
-        return super().on_touch_up(touch)
+        return super().on_touch_down(touch)
 
     def on_hold(self):
         self.held = True
@@ -760,7 +753,7 @@ class InterpreterScreen(BaseScreen):
         )
 
 
-files_screen_code = FilesScreen = type(
+FilesScreen = type(
     "FilesScreen",
     (BaseScreen,),
     {
@@ -895,8 +888,6 @@ class PasswordScreen(BaseScreen):
 
 
 class StegoScreen(BaseScreen):
-    """Стенография: прячет текст в невидимых символах за маскировкой (burmaldainator)."""
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.busy = False
@@ -906,9 +897,6 @@ class StegoScreen(BaseScreen):
         if self.busy:
             return
         path = native_bin("burmaldainator")
-        if not path:
-            self.ids.stego_result.text = "Не найден libburmaldainator.so"
-            return
         cover = self.ids.cover_field.text
         secret = self.ids.secret_field.text
         if mode == "enc" and not secret.strip():
@@ -955,13 +943,10 @@ class StegoScreen(BaseScreen):
 
 
 class DownloaderScreen(BaseScreen):
-    """Качалка: запускает бинарник yt (он вызывает yt-dlp и ffmpeg)."""
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.busy = False
         self.stop_flag = False
-        self.proc = None
         self.height_idx = 0
         self.codec_idx = 0
 
@@ -993,50 +978,33 @@ class DownloaderScreen(BaseScreen):
                 HEIGHTS[self.height_idx],
                 CODECS[self.codec_idx][0],
                 self.ids.ai_check.active,
-                MDApp.get_running_app().user_data_dir,
             ),
             daemon=True,
         ).start()
 
     def stop(self):
         self.stop_flag = True
-        if self.proc is not None and self.proc.poll() is None:
-            self.proc.terminate()
 
-    def _set_proc(self, proc):
-        self.proc = proc
-
-    def _worker(self, url, path, height, codec, ai, base):
+    def _worker(self, url, path, height, codec, ai):
         try:
             os.makedirs(path, exist_ok=True)
-            tools = tools_dir(base)
-            if not os.path.exists(os.path.join(tools, "ffmpeg")):
-                raise RuntimeError("не найден libffmpeg.so")
+            ffmpeg_path = native_bin("ffmpeg", "ffmpeg")
 
-            has_bins = all(
-                os.path.exists(os.path.join(tools, name)) for name in ("yt", "yt-dlp")
+            self.status("Качаю...")
+            out = download_python(
+                url,
+                height,
+                codec,
+                ai,
+                path,
+                ffmpeg_path,
+                self.status,
+                lambda: self.stop_flag,
             )
-            if has_bins:
-                env = dict(os.environ)
-                env["PATH"] = tools + os.pathsep + env.get("PATH", "")
-                cmd = [os.path.join(tools, "yt")] + yt_args(height, codec, ai, path, url)
-                code, last = run_streaming(cmd, env, self.status, self._set_proc)
-                if self.stop_flag:
-                    raise InterruptedError
-                if code != 0:
-                    raise RuntimeError(f"yt вернул код {code}: {last}")
-                out = last
-            else:
-                self.status("Нет бинарника yt-dlp, качаю через Python-модуль...")
-                out = download_python(
-                    url, height, codec, ai, path, tools,
-                    self.status, lambda: self.stop_flag,
-                )
-            self.status(f"Готово: {out}")
+            self.status(f"Готово: {os.path.basename(out)}")
         except Exception as e:
             self.status("Остановлено" if self.stop_flag else f"Ошибка: {e}")
         finally:
-            self.proc = None
             self._unlock()
 
     @mainthread
