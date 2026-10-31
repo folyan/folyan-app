@@ -27,6 +27,7 @@ from nativebins import (
     Stego,
     native_bin,
     find_ffmpeg,
+    media_scan,
     download_python,
     convert_media,
     merge_media,
@@ -1382,6 +1383,7 @@ class DownloaderScreen(StatefulScreen):
         try:
             os.makedirs(path, exist_ok=True)
             ffmpeg = find_ffmpeg()
+
             self.status("Качаю...")
             out = download_python(
                 url,
@@ -1394,6 +1396,7 @@ class DownloaderScreen(StatefulScreen):
                 self.status,
                 lambda: self.stop_flag,
             )
+            media_scan(out)
             self.status(f"Готово: {os.path.basename(out)}")
         except Exception as e:
             self.status("Остановлено" if self.stop_flag else f"Ошибка: {e}")
@@ -1522,14 +1525,13 @@ class ConverterScreen(StatefulScreen):
 
     def _worker(self, mode, src1, src2, out_dir, fmt):
         try:
-            ffmpeg = native_bin("ffmpeg")
-            if not ffmpeg:
-                raise RuntimeError("не найден libffmpeg.so")
+            ffmpeg = find_ffmpeg()
             cancelled = lambda: self.stop_flag
             if mode == "merge":
                 out = merge_media(ffmpeg, src1, src2, out_dir, fmt, self.status, cancelled)
             else:
                 out = convert_media(ffmpeg, src1, out_dir, fmt, self.status, cancelled)
+            media_scan(out)
             self.status(f"Готово: {os.path.basename(out)}")
         except Exception as e:
             self.status("Остановлено" if self.stop_flag else f"Ошибка: {e}")

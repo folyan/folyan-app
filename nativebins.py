@@ -48,6 +48,41 @@ def native_bin(lib, cmd=None):
             return path
     return shutil.which(cmd or lib)
 
+
+def find_ffmpeg():
+    exe = native_bin("ffmpeg")
+    if not exe:
+        raise RuntimeError("в APK нет libffmpeg.so (проверь, что он попал в libs/arm64-v8a)")
+    try:
+        r = subprocess.run(
+            [exe, "-version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=20,
+        )
+    except OSError as e:
+        raise RuntimeError(f"ffmpeg не запускается: {e} ({exe})")
+    if r.returncode != 0:
+        out = r.stdout.decode("utf-8", "replace").strip()
+        raise RuntimeError(f"ffmpeg код {r.returncode}: {out[:300]}")
+    return exe
+
+
+def media_scan(path):
+    try:
+        from jnius import autoclass
+
+        Intent = autoclass("android.content.Intent")
+        Uri = autoclass("android.net.Uri")
+        File = autoclass("java.io.File")
+        context = autoclass("org.kivy.android.PythonActivity").mActivity
+        intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+        intent.setData(Uri.fromFile(File(path)))
+        context.sendBroadcast(intent)
+    except Exception:
+        pass
+
+
 def stego_max_secret(cover):
     return (STEGO_LINE_MAX - len(cover.encode())) // STEGO_BYTES_PER_BYTE
 
@@ -374,25 +409,6 @@ class SilentLogger:
     def debug(self, msg): pass
     def warning(self, msg): pass
     def error(self, msg): pass
-
-
-def find_ffmpeg():
-    exe = native_bin("ffmpeg")
-    if not exe:
-        raise RuntimeError("в APK нет libffmpeg.so (проверь, что он попал в libs/arm64-v8a)")
-    try:
-        r = subprocess.run(
-            [exe, "-version"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            timeout=20,
-        )
-    except OSError as e:
-        raise RuntimeError(f"ffmpeg не запускается: {e} ({exe})")
-    if r.returncode != 0:
-        out = r.stdout.decode("utf-8", "replace").strip()
-        raise RuntimeError(f"ffmpeg код {r.returncode}: {out[:300]}")
-    return exe
 
 
 def download_python(url, height, codec, ai, fmt, path, ffmpeg_exe, on_status, cancelled):
