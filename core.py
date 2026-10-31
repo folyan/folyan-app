@@ -26,7 +26,7 @@ from passwordmanager import generate_password, DEFAULT_ITERATIONS, DEFAULT_SALT
 from nativebins import (
     Stego,
     native_bin,
-    prepare_ffmpeg,
+    find_ffmpeg,
     download_python,
     convert_media,
     merge_media,
@@ -1381,10 +1381,7 @@ class DownloaderScreen(StatefulScreen):
     def _worker(self, url, path, res, codec, ai, fmt):
         try:
             os.makedirs(path, exist_ok=True)
-            ffmpeg_dir = prepare_ffmpeg(MDApp.get_running_app().user_data_dir)
-            if not ffmpeg_dir:
-                raise RuntimeError("не найден libffmpeg.so")
-
+            ffmpeg = find_ffmpeg()
             self.status("Качаю...")
             out = download_python(
                 url,
@@ -1393,7 +1390,7 @@ class DownloaderScreen(StatefulScreen):
                 ai,
                 fmt,
                 path,
-                ffmpeg_dir,
+                ffmpeg,
                 self.status,
                 lambda: self.stop_flag,
             )

@@ -48,20 +48,6 @@ def native_bin(lib, cmd=None):
             return path
     return shutil.which(cmd or lib)
 
-
-def prepare_ffmpeg(base):
-    exe = native_bin("ffmpeg")
-    if not exe:
-        return None
-    folder = os.path.join(base, "bin")
-    os.makedirs(folder, exist_ok=True)
-    link = os.path.join(folder, "ffmpeg")
-    if os.path.lexists(link):
-        os.remove(link)
-    os.symlink(exe, link)
-    return folder
-
-
 def stego_max_secret(cover):
     return (STEGO_LINE_MAX - len(cover.encode())) // STEGO_BYTES_PER_BYTE
 
@@ -390,7 +376,26 @@ class SilentLogger:
     def error(self, msg): pass
 
 
-def download_python(url, height, codec, ai, fmt, path, ffmpeg_dir, on_status, cancelled):
+def find_ffmpeg():
+    exe = native_bin("ffmpeg")
+    if not exe:
+        raise RuntimeError("в APK нет libffmpeg.so (проверь, что он попал в libs/arm64-v8a)")
+    try:
+        r = subprocess.run(
+            [exe, "-version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=20,
+        )
+    except OSError as e:
+        raise RuntimeError(f"ffmpeg не запускается: {e} ({exe})")
+    if r.returncode != 0:
+        out = r.stdout.decode("utf-8", "replace").strip()
+        raise RuntimeError(f"ffmpeg код {r.returncode}: {out[:300]}")
+    return exe
+
+
+def download_python(url, height, codec, ai, fmt, path, ffmpeg_exe, on_status, cancelled):
     import yt_dlp
     from yt_dlp.utils import DownloadCancelled
 
@@ -410,7 +415,7 @@ def download_python(url, height, codec, ai, fmt, path, ffmpeg_dir, on_status, ca
     opts = {
         "paths": {"home": path},
         "outtmpl": "%(title)s.%(ext)s",
-        "ffmpeg_location": ffmpeg_dir,
+        "ffmpeg_location": ffmpeg_exe,
         "progress_hooks": [hook],
         "logger": SilentLogger(),
         "quiet": True,
@@ -431,9 +436,7 @@ def download_python(url, height, codec, ai, fmt, path, ffmpeg_dir, on_status, ca
     except (KeyError, IndexError, TypeError):
         return path
     if audio and not src.lower().endswith("." + fmt):
-        out = convert_media(
-            os.path.join(ffmpeg_dir, "ffmpeg"), src, path, fmt, on_status, cancelled
-        )
+        out = convert_media(ffmpeg_exe, src, path, fmt, on_status, cancelled)
         silent_remove(src)
         return out
     return src
