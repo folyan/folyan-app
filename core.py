@@ -18,6 +18,7 @@ from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.label import MDLabel
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.card import MDCard
 
@@ -27,15 +28,32 @@ from nativebins import (
     native_bin,
     prepare_ffmpeg,
     download_python,
+    convert_media,
+    merge_media,
+    pick_system_file,
 )
 
 APP_DIR = "/storage/emulated/0/Folyan/FolyanApp/"
 SCRIPTS_DIR = APP_DIR + "userscripts/"
 USERDATA_DIR = APP_DIR + "userdata/"
+MEDIA_DIR = "/storage/emulated/0/Folyan/Media/"
 DEFAULT_DOWNLOAD_DIR = "/storage/emulated/0/Download"
 
-HEIGHTS = [720, 1080]
+HEIGHTS = [
+    (144, "144p"),
+    (240, "240p"),
+    (360, "360p"),
+    (480, "480p"),
+    (720, "720p"),
+    (1080, "1080p"),
+    (1440, "1440p"),
+    (2160, "4K"),
+]
 CODECS = [("vp", "VP9"), ("avc1", "H.264"), ("av01", "AV1")]
+DL_FORMATS = ["mkv", "mp4", "wav", "mp3", "m4a", "opus"]
+CONV_FORMATS = ["mp4", "mkv", "mp3", "wav", "m4a", "opus", "ogg", "flac", "aac"]
+MERGE_FORMATS = ["mp4", "mkv"]
+MODES = [("convert", "Конвертация"), ("merge", "Склейка видео+аудио")]
 
 
 def userdata_dir():
@@ -46,6 +64,19 @@ def userdata_dir():
     except OSError:
         pass
     return MDApp.get_running_app().user_data_dir
+
+
+def next_of(options, current):
+    if current in options:
+        return options[(options.index(current) + 1) % len(options)]
+    return options[0]
+
+
+def short_name(path, limit=26):
+    if not path:
+        return "не выбран"
+    name = os.path.basename(path)
+    return name if len(name) <= limit else name[: limit - 1] + "…"
 
 
 KV = """
@@ -104,7 +135,7 @@ KV = """
         ScrollView:
             do_scroll_x: False
             size_hint_y: None
-            height: "260dp"
+            height: "300dp"
             MDBoxLayout:
                 id: buttons_box
                 orientation: "vertical"
@@ -197,6 +228,27 @@ KV = """
             theme_icon_color: "Custom"
             icon_color: (1, 1, 1, 1)
             on_release: root.go_to("interpreter")
+
+        ScrollView:
+            MDBoxLayout:
+                id: files_box
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
+
+<MediaFilesScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            theme_icon_color: "Custom"
+            icon_color: (1, 1, 1, 1)
+            on_release: root.go_back()
 
         ScrollView:
             MDBoxLayout:
@@ -387,6 +439,9 @@ KV = """
                     on_release: root.copy_result()
 
 <DownloaderScreen>:
+    on_pre_enter: root.load_state()
+    on_pre_leave: root.save_state()
+
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
@@ -407,30 +462,107 @@ KV = """
                 adaptive_height: True
                 spacing: "10dp"
 
-                MDTextField:
-                    id: url_field
-                    MDTextFieldHintText:
-                        text: "Ссылка"
-
-                MDTextField:
-                    id: path_field
-                    text: "/storage/emulated/0/Download"
-                    MDTextFieldHintText:
-                        text: "Папка"
-
-                MenuButton:
-                    id: height_btn
-                    caption: "Качество: 720p"
-                    on_release: root.cycle("height")
-
-                MenuButton:
-                    id: codec_btn
-                    caption: "Кодек: VP9"
-                    on_release: root.cycle("codec")
+                MDLabel:
+                    text: "Галочка слева: сохранять параметр"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (0.7, 0.7, 0.7, 1)
 
                 MDBoxLayout:
                     size_hint_y: None
-                    height: "48dp"
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: url_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: url_field
+                        MDTextFieldHintText:
+                            text: "Ссылка"
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: path_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: path_field
+                        text: "/storage/emulated/0/Download"
+                        MDTextFieldHintText:
+                            text: "Папка"
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "56dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: res_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MenuButton:
+                        id: res_btn
+                        caption: "Качество: 720p"
+                        size_hint_x: 1
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.cycle("res")
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "56dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: codec_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MenuButton:
+                        id: codec_btn
+                        caption: "Кодек: VP9"
+                        size_hint_x: 1
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.cycle("codec")
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "56dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: fmt_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MenuButton:
+                        id: fmt_btn
+                        caption: "Формат: MKV"
+                        size_hint_x: 1
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.cycle("fmt")
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "56dp"
                     spacing: "8dp"
 
                     MDCheckbox:
@@ -438,16 +570,138 @@ KV = """
                         size_hint: None, None
                         size: "48dp", "48dp"
                         pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
 
-                    MDLabel:
-                        text: "Разрешить -sr форматы (-ai)"
-                        valign: "middle"
-                        theme_text_color: "Custom"
-                        text_color: (0.7, 0.7, 0.7, 1)
+                    MenuButton:
+                        id: ai_btn
+                        caption: "-sr форматы (-ai): выкл"
+                        size_hint_x: 1
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.cycle("ai")
 
                 MenuButton:
                     id: dl_btn
                     caption: "Скачать"
+                    on_release: root.start()
+
+                MenuButton:
+                    caption: "Стоп"
+                    on_release: root.stop()
+
+                MDLabel:
+                    id: status_label
+                    text: ""
+                    halign: "center"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (1, 1, 1, 1)
+
+<ConverterScreen>:
+    on_pre_enter: root.load_state()
+    on_pre_leave: root.save_state()
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "10dp"
+        md_bg_color: BG
+
+        MDIconButton:
+            icon: "arrow-left"
+            theme_icon_color: "Custom"
+            icon_color: (1, 1, 1, 1)
+            on_release: root.go_to("menu")
+
+        ScrollView:
+            do_scroll_x: False
+
+            MDBoxLayout:
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: "10dp"
+
+                MDLabel:
+                    text: "Галочка слева: сохранять параметр"
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: (0.7, 0.7, 0.7, 1)
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "56dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: mode_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MenuButton:
+                        id: mode_btn
+                        caption: "Режим: Конвертация"
+                        size_hint_x: 1
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.cycle("mode")
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "56dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: fmt_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MenuButton:
+                        id: fmt_btn
+                        caption: "Формат: MP4"
+                        size_hint_x: 1
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.cycle("fmt")
+
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "64dp"
+                    spacing: "8dp"
+
+                    MDCheckbox:
+                        id: dir_check
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+                        on_active: root.save_state()
+
+                    MDTextField:
+                        id: dir_field
+                        text: "/storage/emulated/0/Folyan/Media"
+                        MDTextFieldHintText:
+                            text: "Папка результата"
+
+                MenuButton:
+                    id: pick1_btn
+                    caption: "Файл: не выбран"
+                    on_release: root.pick(1)
+
+                MDBoxLayout:
+                    id: file2_box
+                    size_hint_y: None
+                    height: "0dp"
+                    opacity: 0
+                    disabled: True
+
+                    MenuButton:
+                        id: pick2_btn
+                        caption: "Аудио: не выбран"
+                        on_release: root.pick(2)
+
+                MenuButton:
+                    id: run_btn
+                    caption: "Запустить"
                     on_release: root.start()
 
                 MenuButton:
@@ -481,6 +735,55 @@ class BaseScreen(MDScreen):
         self.manager.current = name
 
 
+class StatefulScreen(BaseScreen):
+    STATE_FILE = ""
+    FIELDS = ()
+    loading = False
+
+    def state_path(self):
+        return os.path.join(userdata_dir(), self.STATE_FILE)
+
+    def get_value(self, name):
+        raise NotImplementedError
+
+    def apply_value(self, name, value):
+        raise NotImplementedError
+
+    def after_load(self):
+        pass
+
+    def load_state(self):
+        self.loading = True
+        try:
+            with open(self.state_path(), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = {}
+        for name in self.FIELDS:
+            check = self.ids[f"{name}_check"]
+            if name in data:
+                self.apply_value(name, data[name])
+                check.active = True
+            else:
+                check.active = False
+        self.after_load()
+        self.loading = False
+
+    def save_state(self):
+        if self.loading:
+            return
+        data = {
+            name: self.get_value(name)
+            for name in self.FIELDS
+            if self.ids[f"{name}_check"].active
+        }
+        try:
+            with open(self.state_path(), "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+        except OSError:
+            pass
+
+
 class MenuScreen(BaseScreen):
     flipping = False
 
@@ -493,6 +796,7 @@ class MenuScreen(BaseScreen):
             ("Менеджер паролей", "passwords"),
             ("Стенография", "stego"),
             ("Качалка", "downloader"),
+            ("Конвертер", "converter"),
             ("Выход", "exit"),
         ]
 
@@ -581,9 +885,9 @@ class Bubble(MDBoxLayout):
                 self.hold_event.cancel()
                 self.hold_event = None
             return True
-        return super().on_touch_down(touch)
+        return super().on_touch_up(touch)
 
-    def on_hold(self):
+    def on_hold(self, *args):
         self.held = True
         self.hold_event = None
         Clipboard.copy(self.text_value)
@@ -779,6 +1083,57 @@ FilesScreen = type(
 )
 
 
+class MediaFilesScreen(BaseScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.callback = None
+        self.back = "converter"
+
+    def open(self, callback, back):
+        self.callback = callback
+        self.back = back
+        self.manager.current = "media_files"
+
+    def go_back(self):
+        self.manager.current = self.back
+
+    def choose(self, path):
+        callback = self.callback
+        self.manager.current = self.back
+        if callback:
+            callback(path)
+
+    def on_enter(self):
+        box = self.ids.files_box
+        box.clear_widgets()
+        try:
+            os.makedirs(MEDIA_DIR, exist_ok=True)
+            names = sorted(
+                n for n in os.listdir(MEDIA_DIR)
+                if os.path.isfile(os.path.join(MEDIA_DIR, n))
+            )
+        except OSError:
+            names = []
+        if not names:
+            box.add_widget(
+                MDLabel(
+                    text="Папка Folyan/Media/ пуста",
+                    halign="center",
+                    adaptive_height=True,
+                    theme_text_color="Custom",
+                    text_color=(0.7, 0.7, 0.7, 1),
+                )
+            )
+            return
+        for name in names:
+            box.add_widget(
+                MDButton(
+                    MDButtonText(text=name),
+                    on_release=lambda btn, p=os.path.join(MEDIA_DIR, name): self.choose(p),
+                )
+            )
+
+
 class PasswordScreen(BaseScreen):
     FIELDS = ("salt", "master", "site", "iterations")
 
@@ -946,21 +1301,60 @@ class StegoScreen(BaseScreen):
             Clipboard.copy(self.result)
 
 
-class DownloaderScreen(BaseScreen):
+class DownloaderScreen(StatefulScreen):
+    STATE_FILE = "downloader.json"
+    FIELDS = ("url", "path", "res", "codec", "fmt", "ai")
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.busy = False
         self.stop_flag = False
-        self.height_idx = 0
-        self.codec_idx = 0
+        self.res = 720
+        self.codec = "vp"
+        self.fmt = "mkv"
+        self.ai = False
 
-    def cycle(self, what):
-        if what == "height":
-            self.height_idx = (self.height_idx + 1) % len(HEIGHTS)
-            self.ids.height_btn.caption = f"Качество: {HEIGHTS[self.height_idx]}p"
-        else:
-            self.codec_idx = (self.codec_idx + 1) % len(CODECS)
-            self.ids.codec_btn.caption = f"Кодек: {CODECS[self.codec_idx][1]}"
+    def get_value(self, name):
+        if name in ("url", "path"):
+            return self.ids[f"{name}_field"].text
+        return getattr(self, name)
+
+    def apply_value(self, name, value):
+        if name in ("url", "path"):
+            self.ids[f"{name}_field"].text = str(value)
+        elif name == "res" and value in [h for h, _ in HEIGHTS]:
+            self.res = value
+        elif name == "codec" and value in [c for c, _ in CODECS]:
+            self.codec = value
+        elif name == "fmt" and value in DL_FORMATS:
+            self.fmt = value
+        elif name == "ai":
+            self.ai = bool(value)
+
+    def after_load(self):
+        if not self.ids.path_field.text.strip():
+            self.ids.path_field.text = DEFAULT_DOWNLOAD_DIR
+        self.refresh()
+
+    def refresh(self):
+        res_label = dict(HEIGHTS).get(self.res, f"{self.res}p")
+        codec_label = dict(CODECS).get(self.codec, self.codec)
+        self.ids.res_btn.caption = f"Качество: {res_label}"
+        self.ids.codec_btn.caption = f"Кодек: {codec_label}"
+        self.ids.fmt_btn.caption = f"Формат: {self.fmt.upper()}"
+        self.ids.ai_btn.caption = f"-sr форматы (-ai): {'вкл' if self.ai else 'выкл'}"
+
+    def cycle(self, name):
+        if name == "res":
+            self.res = next_of([h for h, _ in HEIGHTS], self.res)
+        elif name == "codec":
+            self.codec = next_of([c for c, _ in CODECS], self.codec)
+        elif name == "fmt":
+            self.fmt = next_of(DL_FORMATS, self.fmt)
+        elif name == "ai":
+            self.ai = not self.ai
+        self.refresh()
+        self.save_state()
 
     def start(self):
         if self.busy:
@@ -970,40 +1364,36 @@ class DownloaderScreen(BaseScreen):
             self.status("Вставь ссылку")
             return
         path = self.ids.path_field.text.strip() or DEFAULT_DOWNLOAD_DIR
+        self.save_state()
         self.busy = True
         self.stop_flag = False
         self.ids.dl_btn.disabled = True
         self.status("Запускаю...")
         threading.Thread(
             target=self._worker,
-            args=(
-                url,
-                path,
-                HEIGHTS[self.height_idx],
-                CODECS[self.codec_idx][0],
-                self.ids.ai_check.active,
-            ),
+            args=(url, path, self.res, self.codec, self.ai, self.fmt),
             daemon=True,
         ).start()
 
     def stop(self):
         self.stop_flag = True
 
-    def _worker(self, url, path, height, codec, ai):
+    def _worker(self, url, path, res, codec, ai, fmt):
         try:
             os.makedirs(path, exist_ok=True)
-            ffmpeg_path = prepare_ffmpeg(MDApp.get_running_app().user_data_dir)
-            if not ffmpeg_path:
+            ffmpeg_dir = prepare_ffmpeg(MDApp.get_running_app().user_data_dir)
+            if not ffmpeg_dir:
                 raise RuntimeError("не найден libffmpeg.so")
 
             self.status("Качаю...")
             out = download_python(
                 url,
-                height,
+                res,
                 codec,
                 ai,
+                fmt,
                 path,
-                ffmpeg_path,
+                ffmpeg_dir,
                 self.status,
                 lambda: self.stop_flag,
             )
@@ -1023,6 +1413,152 @@ class DownloaderScreen(BaseScreen):
         self.ids.dl_btn.disabled = False
 
 
+class ConverterScreen(StatefulScreen):
+    STATE_FILE = "converter.json"
+    FIELDS = ("mode", "fmt", "dir")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.busy = False
+        self.stop_flag = False
+        self.mode = "convert"
+        self.fmt = "mp4"
+        self.src1 = None
+        self.src2 = None
+        self.pick_slot = 1
+
+    def cache_dir(self):
+        return os.path.join(MDApp.get_running_app().user_data_dir, "picked")
+
+    def formats(self):
+        return MERGE_FORMATS if self.mode == "merge" else CONV_FORMATS
+
+    def get_value(self, name):
+        if name == "dir":
+            return self.ids.dir_field.text
+        return getattr(self, name)
+
+    def apply_value(self, name, value):
+        if name == "dir":
+            self.ids.dir_field.text = str(value)
+        elif name == "mode" and value in [m for m, _ in MODES]:
+            self.mode = value
+        elif name == "fmt" and value in CONV_FORMATS:
+            self.fmt = value
+
+    def after_load(self):
+        if not self.ids.dir_field.text.strip():
+            self.ids.dir_field.text = MEDIA_DIR.rstrip("/")
+        self.refresh()
+
+    def refresh(self):
+        merge = self.mode == "merge"
+        options = self.formats()
+        if self.fmt not in options:
+            self.fmt = options[0]
+        self.ids.mode_btn.caption = f"Режим: {dict(MODES)[self.mode]}"
+        self.ids.fmt_btn.caption = f"Формат: {self.fmt.upper()}"
+        self.ids.pick1_btn.caption = ("Видео: " if merge else "Файл: ") + short_name(self.src1)
+        self.ids.pick2_btn.caption = "Аудио: " + short_name(self.src2)
+        box = self.ids.file2_box
+        box.height = dp(56) if merge else 0
+        box.opacity = 1 if merge else 0
+        box.disabled = not merge
+
+    def cycle(self, name):
+        if name == "mode":
+            self.mode = next_of([m for m, _ in MODES], self.mode)
+        else:
+            self.fmt = next_of(self.formats(), self.fmt)
+        self.refresh()
+        self.save_state()
+
+    def pick(self, slot):
+        if self.busy:
+            return
+        self.pick_slot = slot
+        self.save_state()
+        started = pick_system_file(self.on_picked, self.cache_dir())
+        if not started:
+            self.manager.get_screen("media_files").open(
+                lambda path: self.on_picked(path, None), "converter"
+            )
+
+    @mainthread
+    def on_picked(self, path, error=None):
+        if error:
+            self.status(f"Ошибка: {error}")
+            return
+        if not path:
+            return
+        if self.pick_slot == 2:
+            self.src2 = path
+        else:
+            self.src1 = path
+        self.status("")
+        self.refresh()
+
+    def start(self):
+        if self.busy:
+            return
+        merge = self.mode == "merge"
+        if not self.src1:
+            self.status("Выбери видео" if merge else "Выбери файл")
+            return
+        if merge and not self.src2:
+            self.status("Выбери аудио")
+            return
+        out_dir = self.ids.dir_field.text.strip() or MEDIA_DIR.rstrip("/")
+        self.save_state()
+        self.busy = True
+        self.stop_flag = False
+        self.ids.run_btn.disabled = True
+        self.status("Запускаю...")
+        threading.Thread(
+            target=self._worker,
+            args=(self.mode, self.src1, self.src2, out_dir, self.fmt),
+            daemon=True,
+        ).start()
+
+    def stop(self):
+        self.stop_flag = True
+
+    def _worker(self, mode, src1, src2, out_dir, fmt):
+        try:
+            ffmpeg = native_bin("ffmpeg")
+            if not ffmpeg:
+                raise RuntimeError("не найден libffmpeg.so")
+            cancelled = lambda: self.stop_flag
+            if mode == "merge":
+                out = merge_media(ffmpeg, src1, src2, out_dir, fmt, self.status, cancelled)
+            else:
+                out = convert_media(ffmpeg, src1, out_dir, fmt, self.status, cancelled)
+            self.status(f"Готово: {os.path.basename(out)}")
+        except Exception as e:
+            self.status("Остановлено" if self.stop_flag else f"Ошибка: {e}")
+        finally:
+            self._unlock()
+
+    @mainthread
+    def status(self, text):
+        self.ids.status_label.text = text
+
+    @mainthread
+    def _unlock(self):
+        cache = self.cache_dir()
+        for attr in ("src1", "src2"):
+            path = getattr(self, attr)
+            if path and path.startswith(cache):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+                setattr(self, attr, None)
+        self.busy = False
+        self.ids.run_btn.disabled = False
+        self.refresh()
+
+
 class FolyanApp(MDApp):
     def build(self):
         self.theme_cls.theme_style = "Dark"
@@ -1035,4 +1571,6 @@ class FolyanApp(MDApp):
         sm.add_widget(PasswordScreen(name="passwords"))
         sm.add_widget(StegoScreen(name="stego"))
         sm.add_widget(DownloaderScreen(name="downloader"))
+        sm.add_widget(ConverterScreen(name="converter"))
+        sm.add_widget(MediaFilesScreen(name="media_files"))
         return sm
